@@ -1,0 +1,1262 @@
+[
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f19"
+    },
+    "station_id": 1,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32703953184347,
+        -24.035153245091358
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 6,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1a"
+    },
+    "station_id": 2,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.29629704577059,
+        -24.016576182916772
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 296,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1b"
+    },
+    "station_id": 3,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.29639271844673,
+        -23.954575943025315
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 41,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1c"
+    },
+    "station_id": 4,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.3592862227025,
+        -23.94977642182805
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 190,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1d"
+    },
+    "station_id": 5,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.41411835927631,
+        -24.069062548158044
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 12,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1e"
+    },
+    "station_id": 6,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.35218500683844,
+        -24.02470507654072
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 27,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f1f"
+    },
+    "station_id": 7,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31125991183301,
+        -24.046177311183726
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 269,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f20"
+    },
+    "station_id": 8,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.316012549446,
+        -23.9725500833121
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 105,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f21"
+    },
+    "station_id": 9,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.417577812159806,
+        -23.937801619761885
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 19,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f22"
+    },
+    "station_id": 10,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31747077962768,
+        -24.0214835316863
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 262,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f23"
+    },
+    "station_id": 11,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.423177920330495,
+        -24.051300175977186
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 168,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f24"
+    },
+    "station_id": 12,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.3644623639346,
+        -23.902079379448434
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 87,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f25"
+    },
+    "station_id": 13,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.36756243901178,
+        -24.02012331484966
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 45,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f26"
+    },
+    "station_id": 14,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.38887084642505,
+        -23.922137608500318
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 127,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f27"
+    },
+    "station_id": 15,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.36369425631107,
+        -23.94826939841353
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 106,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f28"
+    },
+    "station_id": 16,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.351939381459,
+        -24.03935627063495
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 146,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f29"
+    },
+    "station_id": 17,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.33388034817806,
+        -23.959425672482602
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 278,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2a"
+    },
+    "station_id": 18,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.35171530913279,
+        -24.041054049489624
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 178,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2b"
+    },
+    "station_id": 19,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31997752449918,
+        -23.968041851726653
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 52,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2c"
+    },
+    "station_id": 20,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.33736018079594,
+        -24.017937665111443
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 190,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2d"
+    },
+    "station_id": 21,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.352176616107116,
+        -24.013094437186115
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 129,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2e"
+    },
+    "station_id": 22,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.2677058701995,
+        -24.03477102017249
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 29,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f2f"
+    },
+    "station_id": 23,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32268228236122,
+        -23.969997190988963
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 257,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f30"
+    },
+    "station_id": 24,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.30039313545944,
+        -24.01437383769915
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 42,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f31"
+    },
+    "station_id": 25,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.3755769535822,
+        -23.90792592830022
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 86,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f32"
+    },
+    "station_id": 26,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.39246375487706,
+        -23.917405798724023
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 299,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f33"
+    },
+    "station_id": 27,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.38667795822407,
+        -24.008805809255154
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 213,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f34"
+    },
+    "station_id": 28,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.432230444348114,
+        -23.953728551206847
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 15,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f35"
+    },
+    "station_id": 29,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.311836992021654,
+        -23.99528576811532
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 87,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d844a0177c0b803a93f36"
+    },
+    "station_id": 30,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.42623210895272,
+        -23.946149453460176
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 107,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065bf"
+    },
+    "station_id": 31,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31213433415878,
+        -23.961396943421313
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 248,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c0"
+    },
+    "station_id": 32,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.3611810910958,
+        -24.012150720059367
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 65,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c1"
+    },
+    "station_id": 33,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.39155090496961,
+        -24.017922531006356
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 225,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c2"
+    },
+    "station_id": 34,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31367467471413,
+        -23.955504665290906
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 142,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c3"
+    },
+    "station_id": 35,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.36709148695789,
+        -23.939376091225213
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 161,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c4"
+    },
+    "station_id": 36,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.445511374904534,
+        -23.981572516761663
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 139,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c5"
+    },
+    "station_id": 37,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.3117982702435,
+        -23.93813597572557
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 165,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c6"
+    },
+    "station_id": 38,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.40659881499829,
+        -24.002600276418963
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 58,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c7"
+    },
+    "station_id": 39,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.35008401789885,
+        -23.965299725725394
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 39,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c8"
+    },
+    "station_id": 40,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32281329751188,
+        -23.916943611396352
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 285,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065c9"
+    },
+    "station_id": 41,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32560178604655,
+        -24.02798948349888
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 297,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065ca"
+    },
+    "station_id": 42,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.342772510867015,
+        -23.961695606668805
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 249,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065cb"
+    },
+    "station_id": 43,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.29383308282734,
+        -23.97632653013829
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 69,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065cc"
+    },
+    "station_id": 44,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.38753312422816,
+        -24.00061940484663
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 198,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065cd"
+    },
+    "station_id": 45,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.36467544276956,
+        -23.93165146111304
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 208,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065ce"
+    },
+    "station_id": 46,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.305059532511095,
+        -23.92494490588568
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 112,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065cf"
+    },
+    "station_id": 47,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.321949930075576,
+        -23.934328341883045
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 262,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d0"
+    },
+    "station_id": 48,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.352997034008325,
+        -24.02290804924139
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 127,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d1"
+    },
+    "station_id": 49,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32143103521756,
+        -24.02032308636282
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 66,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d2"
+    },
+    "station_id": 50,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.395936186870436,
+        -24.063336952919713
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 108,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d3"
+    },
+    "station_id": 51,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.41621740260173,
+        -24.05351598297382
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 108,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d4"
+    },
+    "station_id": 52,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.37037674714549,
+        -23.983193720237466
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 223,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d5"
+    },
+    "station_id": 53,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.33390598837748,
+        -24.04993621375749
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 38,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d6"
+    },
+    "station_id": 54,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.397099641500986,
+        -24.032966363314085
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 299,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d7"
+    },
+    "station_id": 55,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.32565998812532,
+        -24.012481896652666
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 15,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d8"
+    },
+    "station_id": 56,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.35903368626596,
+        -23.92658677537587
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 167,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065d9"
+    },
+    "station_id": 57,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.411582675348704,
+        -24.00000281772326
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 253,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065da"
+    },
+    "station_id": 58,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.40956400925675,
+        -24.03086021375202
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 166,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065db"
+    },
+    "station_id": 59,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.31599717734826,
+        -24.014714166316622
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 125,
+    "status": "online"
+  },
+  {
+    "_id": {
+      "$oid": "6a8d8469ef860f08507065dc"
+    },
+    "station_id": 60,
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -46.373163657629355,
+        -23.94476600159002
+      ]
+    },
+    "administrative": {
+      "country": "Brazil",
+      "state": "São Paulo",
+      "city": "Santos",
+      "district": "Baía de Santos"
+    },
+    "detections": 146,
+    "status": "online"
+  }
+]

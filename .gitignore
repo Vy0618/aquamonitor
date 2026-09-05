@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Model weights and detection outputs (large files)
+best.pt
+runs/
+
+# Ultralytics environment
+ultralytics-env/
+
+# TensorFlow model files (OpenCV DNN)
+*.pb
+*.pbtxt
+
+# Temporary files
+tmp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# Environment variables / secrets
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# MongoDB local database files
+data/
+
+# Images (not part of codebase)
+*.jpg
+*.jpeg
+*.png
+
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/

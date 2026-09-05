@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>AQUA MONITOR</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <header>
+        <div class="title">
+            AQUA MONITOR
+        </div>
+        <div class="system-status">
+            SYSTEM STATUS: ONLINE
+        </div>
+    </header>
+    <main>
+        <aside>
+            <div class="section">
+                <div class="section-title">
+                    SYSTEM UPTIME
+                </div>
+                <div class="uptime" id="uptime">
+                    00:00:00
+                </div>
+                <div class="uptime-label">
+                    TIME SINCE SYSTEM START
+                </div>
+            </div>
+
+            <div class="filter-section">
+
+                <h3>Localidade</h3>
+
+                <label for="stateFilter">
+                    Estado
+                </label>
+
+                <select id="stateFilter">
+                    <option value="">
+                        Todos os estados
+                    </option>
+                </select>
+
+
+                <label for="cityFilter">
+                    Município
+                </label>
+
+                <select id="cityFilter">
+                    <option value="">
+                        Todos os municípios
+                    </option>
+                </select>
+
+
+                <label for="districtFilter">
+                    Distrito
+                </label>
+
+                <select id="districtFilter">
+                    <option value="">
+                        Todos os distritos
+                    </option>
+                </select>
+
+            </div>
+
+
+
+            <button id="clearFilters">
+                Limpar filtros
+            </button>
+
+
+        </aside>
+        <div id="map"></div>
+    </main>
+    <script type="module" src="./js/main.js"></script>
+
+</body>
+
+</html>

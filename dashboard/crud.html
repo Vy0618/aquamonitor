@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Aqua Monitor - Add Station</title>
+    <link
+        rel="stylesheet"
+        href="cadastro-style.css"
+    >
+</head>
+
+<body>
+
+    <h1>Aqua Monitor</h1>
+    <h2>Add Station</h2>
+
+    <form id="stationForm">
+
+        <label for="station_id">
+            Station ID
+        </label>
+
+        <input
+            type="number"
+            id="station_id"
+            required
+        >
+
+        <br><br>
+
+        <label for="detections">
+            Detections
+        </label>
+
+        <input
+            type="number"
+            id="detections"
+            min="0"
+            required
+        >
+
+        <br><br>
+
+        <label for="longitude">
+            Longitude
+        </label>
+
+        <input
+            type="number"
+            id="longitude"
+            step="any"
+            required
+        >
+
+        <br><br>
+
+        <label for="latitude">
+            Latitude
+        </label>
+
+        <input
+            type="number"
+            id="latitude"
+            step="any"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit">
+            Add station
+        </button>
+
+    </form>
+
+    <p id="message"></p>
+
+    <hr>
+
+    <h2>Delete Station</h2>
+
+    <form id="deleteForm">
+
+        <label for="delete_station_id">
+            Station ID
+        </label>
+
+        <input
+            type="text"
+            id="delete_station_id"
+            placeholder="ST001"
+            required
+        >
+
+        <br><br>
+
+
+        <button type="submit">
+            Delete Station
+        </button>
+
+    </form>
+
+
+    <p id="deleteMessage"></p>
+    
+    <script src="./js/crud.js"></script>
+
+</body>
+
+</html>
