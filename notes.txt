@@ -304,3 +304,118 @@ Modelos:
 14. best.pt e runs/ são arquivos grandes rastreados no git apesar de estarem no .gitignore
     (foram commitados antes do .gitignore ser atualizado — podem ser removidos com:
      git rm --cached best.pt && git rm -r --cached runs/).
+
+
+
+======================================================================================================
+
+. Inicie o MongoDB (obrigatório)
+
+bash
+mongod --fork --logpath /var/log/mongod.log --dbpath /var/lib/mongodb
+
+
+Ou se já tiver instalado como serviço:
+bash
+sudo systemctl start mongod
+
+
+Verifique se está rodando:
+bash
+mongosh --eval "db.runCommand({ping:1})"
+
+
+
+
+2. Inicie o backend FastAPI (na aba do terminal)
+
+bash
+cd /home/vyzxc/aquamonitor
+source .venv/bin/activate
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+
+
+Ou usando o .venv:
+bash
+source /home/vyzxc/aquamonitor/.venv/bin/activate
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+
+
+Isso vai abrir o servidor na porta 8000. Os endpoints de bottle-count estarão disponíveis em http://127.0.0.1:8000/api/stations/1/bottle-count.
+
+
+
+3. Inicie a detecção local com câmera (na outra aba do terminal)
+
+bash
+cd /home/vyzxc/aquamonitor
+source ultralytics-env/bin/activate
+python backend/detection/object-ident.py --publish
+
+
+Explicação:
+- --publish habilita o envio das contagens para o backend via HTTP POST
+- Sem --publish, o sistema roda apenas localmente (sem enviar dados ao backend)
+- A câmera abre na tela com o frame mostrando as caixas de detecção e o contador de garrafas
+- Pressione q para parar
+
+
+
+4. Abra o dashboard no navegador
+
+
+http://127.0.0.1:8000
+
+
+Ou se o uvicorn estiver rodando na porta 8000, abra http://localhost:8000. O arquivo index.html está em /home/vyzxc/aquamonitor/dashboard/.
+
+Mas atenção: o uvicorn serve o backend/app.py, não o dashboard/index.html. Você precisa servir o dashboard separadamente. Duas opções:
+
+Opção A: Use python -m http.server para servir o dashboard:
+bash
+cd /home/vyzxc/aquamonitor/dashboard
+python -m http.server 3000
+
+Acesse http://127.0.0.1:3000
+
+Opção B: Adicione uvicorn para servir arquivos estáticos (mais complexo).
+
+
+
+5. O que acontece
+
+Quando tudo estiver rodando:
+1. Câmera detecta garrafas com SSD MobileNet + ByteTrack
+2. LineCounter conta quando garrafas cruzam a linha horizontal no meio do frame
+3. A cada 5 segundos (configurado em config.py via BOTTLE_COUNT_PUBLISH_INTERVAL), o pipeline envia {count, count_by_direction} para POST http://127.0.0.1:8000/api/stations/1/bottle-count
+4. MongoDB armazena em bottle_metrics_collection
+5. Dashboard faz polling a cada 3 segundos via fetchBottleCount() para exibir o total atualizado na sidebar
+
+
+
+Verificação rápida sem câmera
+
+Você pode testar os endpoints do backend diretamente com curl:
+
+bash
+POST - enviar uma contagem (simula o que o pipeline envia)
+curl -X POST http://127.0.0.1:8000/api/stations/1/bottle-count \
+  -H "Content-Type: application/json" \
+  -d '{"count": 5, "count_by_direction": {"positive": 3, "negative": 2}}'
+
+GET - recuperar a última contagem da estação 1
+curl http://127.0.0.1:8000/api/stations/1/bottle-count
+
+
+
+
+Resumo do que você precisa rodar
+
+| Componente        | Comando                                              | Depende de           |
+|-------------------|------------------------------------------------------|----------------------|
+| MongoDB           | mongod                                               | Nada                 |
+| Backend API       | uvicorn backend.app:app                              | MongoDB              |
+| Detector (câmera) | python backend/detection/object-ident.py --publish   | ultralytics-env venv |
+| Dashboard         | python -m http.server 3000 (no diretório dashboard/) | Backend              |
+
+=========================================================================================================

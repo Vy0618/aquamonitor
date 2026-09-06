@@ -150,6 +150,46 @@ aside {
 }
 
 
+.bottle-count {
+    font-size: 32px;
+    font-weight: bold;
+    color: #0f0;
+    margin: 10px 0;
+    letter-spacing: 2px;
+}
+
+.count-label {
+    font-size: 10px;
+    color: #555;
+    margin-left: 6px;
+}
+
+.count-directions {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.direction {
+    font-weight: bold;
+}
+
+.direction.positive {
+    color: #0f0;
+}
+
+.direction.negative {
+    color: #f00;
+}
+
+.bottle-status {
+    font-size: 10px;
+    color: #555;
+    margin-top: 5px;
+}
+
+
 /* =====================================================
            MAPA
            ===================================================== */

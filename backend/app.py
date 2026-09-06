@@ -1,5 +1,7 @@
+from datetime import datetime
 from fastapi import FastAPI, HTTPException
-from  pymongo import MongoClient
+from pydantic import BaseModel
+from pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -20,6 +22,16 @@ client = MongoClient(
 db = client["aquamonitor"]
 
 stations_collection = db["stations"]
+bottle_metrics_collection = db["bottle_metrics"]
+
+
+# ============================
+# Pydantic models
+# ============================
+
+class BottleCountPayload(BaseModel):
+    count: int
+    count_by_direction: dict[str, int]
 
 
 # ============================
@@ -87,6 +99,61 @@ def delete_station(station_id: str):
 
     return {
         "message": "Station deleted successfully"
+    }
+
+
+# ============================
+# BOTTLE COUNT — Phase 3
+# ============================
+
+@app.post("/api/stations/{station_id}/bottle-count")
+def ingest_bottle_count(station_id: int, payload: BottleCountPayload):
+    """Ingest the aggregate bottle count from a detection pipeline."""
+
+    document = {
+        "station_id": station_id,
+        "count": payload.count,
+        "count_by_direction": payload.count_by_direction,
+        "timestamp": datetime.utcnow(),
+    }
+
+    result = bottle_metrics_collection.insert_one(document)
+
+    print(
+        "Bottle count ingested for station %d: %d (inserted_id=%s)",
+        station_id,
+        payload.count,
+        result.inserted_id,
+    )
+
+    return {
+        "message": "Bottle count ingested successfully",
+        "id": str(result.inserted_id),
+        "station_id": station_id,
+        "count": payload.count,
+    }
+
+
+@app.get("/api/stations/{station_id}/bottle-count")
+def get_bottle_count(station_id: int):
+    """Retrieve the latest bottle count for a station."""
+
+    document = bottle_metrics_collection.find_one(
+        {"station_id": station_id},
+        sort=[("timestamp", -1)],
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="No bottle count data found for this station"
+        )
+
+    return {
+        "station_id": document["station_id"],
+        "count": document["count"],
+        "count_by_direction": document["count_by_direction"],
+        "timestamp": document["timestamp"].isoformat(),
     }
 
 
