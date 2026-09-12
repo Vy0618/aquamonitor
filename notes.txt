@@ -19,14 +19,13 @@ original previa YOLOv3 + OpenCV DNN, mas o código atual implementa:
 IMPLEMENTADO:
   ✓ Fase 1 — Bibliotecas centrais (tracker.py, geometry.py, line_counter.py, config.py)
   ✓ Fase 2 — Integração (detection_pipeline.py, api_client.py, object-ident.py refatorado)
-  ⚠ Fase 3 — Backend parcial: api_client.py existe, mas endpoint POST /api/stations/{id}/bottle-count NÃO implementado em app.py
-  ✗ Fase 4 — Frontend: bottle-counter.js NÃO criado, mas estética e filtros do dashboard estão completos
+  ⚠ Fase 3 — Backend: implementado (bottle-count endpoints + bottle_metrics_collection no app.py)
+  ✗ Fase 4 — Frontend: bottle-counter.js existe mas não está conectado ao main.js
   ✗ Fase 5 — Testes: nenhum teste implementado
 
 ARQUIVOS QUE NÃO EXISTEM (erros comuns ao buscar):
   - backend/detection/line_config.py (não existe; configuração está em config.py)
   - backend/detection/count_store.py (não existe)
-  - dashboard/js/bottle-counter.js (não existe)
 
 ==============================================================================
 2. ESTRUTURA DE DIRETÓRIOS
@@ -34,7 +33,7 @@ ARQUIVOS QUE NÃO EXISTEM (erros comuns ao buscar):
 
 aquamonitor/
 ├── backend/
-│   ├── app.py                    # FastAPI — 3 rotas CRUD (POST/GET/DELETE /api/stations)
+│   ├── app.py                    # FastAPI — rotas CRUD + ingestão de bottle-count
 │   ├── test_mongodb.py           # Script de verificação da conexão MongoDB
 │   └── detection/
 │       ├── __init__.py           # Docstring do módulo
@@ -46,7 +45,7 @@ aquamonitor/
 │       ├── api_client.py         # HTTP client para publicar contagem no backend
 │       ├── object-ident.py       # Runner principal: câmera → pipeline (com -)
 │       └── models/
-│           ├── coco.names                # 80 classes COCO
+│           ├── coco.names                # 90 classes COCO
 │           ├── frozen_inference_graph.pb # Pesos do SSD MobileNet (OpenCV DNN)
 │           └── ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt  # Config do modelo
 ├── dashboard/
@@ -56,6 +55,7 @@ aquamonitor/
 │   ├── cadastro-style.css    # Estilos da página de cadastro
 │   └── js/
 │       ├── api.js            # fetchStations() → GET http://127.0.0.1:8000/api/stations
+│       ├── bottle-counter.js # fetchBottleCount() → GET /api/stations/{id}/bottle-count
 │       ├── config.js         # HEATMAP_CONFIG (raios, opacidades, zoom thresholds)
 │       ├── main.js           # Orquestrador principal (init map, fetchers, eventos)
 │       ├── map.js            # Cria mapa Leaflet [-23.5015, -46.4526] zoom 13
@@ -66,10 +66,11 @@ aquamonitor/
 │       ├── uptime.js         # setInterval 1s, conta desde Date.now()
 │       └── zoom.js           # L.control top-right mostrando zoom atual
 ├── stations.json             # Dados de exemplo (30 estações × 2 localizações = 60 docs)
-├── requirements.txt          # Todas as dependências (inclui supervision, lap, cython-bbox)
+├── requirements.txt          # fastapi, uvicorn, pydantic, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4
 ├── best.pt                   # Peso YOLOv8 (classe 0 = bottle) — NÃO rastrear no git
 ├── runs/                     # Saídas de detecção YOLO — NÃO rastrear no git
-├── tmp/                      # Arquivos temporários matplotlib
+├── tmp/                      # Arquivos temporários matplotlib (aquamonitor-mpl/)
+├── *.jpeg, *.jpg             # Imagens de referência (garrafaplastica, lixopiscina, poluicao, Plastic-river-bottle)
 └── notes.txt                 # Este arquivo
 
 ==============================================================================
@@ -112,15 +113,10 @@ Rotas implementadas:
   POST   /api/stations           Criar nova estação (JSON: station_id, detections, location, administrative)
   GET    /api/stations           Listar todas as estações (retorna station_id, location, detections)
   DELETE /api/stations/{station_id}  Deletar por station_id (numérico)
+  POST   /api/stations/{station_id}/bottle-count  Ingestão de contagem de garrafas
+  GET    /api/stations/{station_id}/bottle-count  Recuperar última contagem
 
-Rotas planejadas NÃO implementadas (Fase 3):
-  POST   /api/stations/{station_id}/bottle-count  Ingerir contagem de garrafas
-  GET    /api/stations/{station_id}/bottle-count  Recuperar contagem
-
-Execução:
-  uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
-
-OBS: O campo "bottle_metrics" no schema MongoDB está previsto na Fase 3 mas não foi adicionado ao app.py.
+Obs: O campo "bottle_metrics" no schema MongoDB está sendo usado (bottle_metrics_collection).
 
 ==============================================================================
 5. VISÃO COMPUTACIONAL — DETECÇÃO E RASTREAMENTO
@@ -247,7 +243,7 @@ Testar API:
 
 Detecção local:
   ultralytics-env/bin/python backend/detection/object-ident.py
-  ultrralytics-env/bin/python backend/detection/object-ident.py --publish  # com envio ao backend
+  ultralytics-env/bin/python backend/detection/object-ident.py  # com envio ao backend
 
 ==============================================================================
 10. DEPENDÊNCIAS PRINCIPAIS
@@ -350,7 +346,7 @@ Isso vai abrir o servidor na porta 8000. Os endpoints de bottle-count estarão d
 bash
 cd /home/vyzxc/aquamonitor
 source ultralytics-env/bin/activate
-python backend/detection/object-ident.py --publish
+'python backend/detection/object-ident.py --publish'
 
 
 Explicação:
