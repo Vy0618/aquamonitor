@@ -1,0 +1,35 @@
+# Registro de alterações
+
+## 2026-09-12 03:38:15 -03
+
+**Pedido atendido:** "por favor, realize a associação entre ambos." O pedido
+refere-se à associação entre a estação exibida na dashboard e as contagens de
+garrafas recebidas pela API.
+
+**Aplicação:** `backend/app.py` agora confirma que a `station_id` existe na
+coleção `stations` antes de aceitar ou consultar uma contagem. O POST grava a
+métrica usando a `station_id` da rota e rejeita estações inexistentes com 404,
+evitando métricas órfãs. O GET devolve uma contagem inicial zerada para uma
+estação existente que ainda não recebeu métricas, em vez de retornar 404; isso
+permite que a dashboard mantenha o polling da estação 1 sem erro até a primeira
+publicação do detector.
+
+**Validação:** `backend/test_bottle_count.py` cobre inserção para estação
+registrada, rejeição de estação desconhecida, retorno zerado sem métricas e
+recuperação da métrica mais recente.
+
+## 2026-09-12 04:00:50 -03
+
+**Pedido atendido:** associar a contagem real de `bottle_metrics` ao mapa de
+calor, aos marcadores e à sidebar da dashboard.
+
+**Aplicação:** `GET /api/stations` agora usa uma agregação para obter em lote a
+última métrica de cada estação e a retorna em `bottle_count`. O campo legado
+`detections` permanece, mas espelha `bottle_count.count`. A dashboard usa esse
+campo canônico para intensidade do mapa e popups; o polling atualiza o mesmo
+objeto de estação antes de redesenhar a visualização. Clicar em um marcador
+altera a estação acompanhada pela sidebar.
+
+**Validação:** testes unitários para métricas por estação e validação sintática
+dos módulos JavaScript. A verificação HTTP local ficou pendente porque a API
+não respondeu dentro de cinco segundos.

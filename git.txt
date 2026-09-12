@@ -1,0 +1,82 @@
+# Git Commands Reference
+
+## Configuration
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
+git config --global init.defaultBranch main
+
+## Initialize / Clone
+git init                          # Initialize a new repo
+git clone <url>                   # Clone a remote repo
+
+## Status & Diff
+git status                        # Show working tree status
+git diff                          # Show unstaged changes
+git diff --staged                 # Show staged changes
+
+## Stage / Unstage
+git add <file>                    # Stage a file
+git add .                         # Stage all changes
+git reset <file>                  # Unstage a file
+git reset HEAD .                  # Unstage all changes
+
+## Commit
+git commit -m "message"           # Commit staged changes
+git commit -am "message"          # Commit all tracked changes (skip add)
+git commit --amend -m "message"   # Amend the last commit
+
+## Log
+git log                           # Show commit history
+git log --oneline                 # Show commit history (compact)
+git log --graph --oneline --all   # Show branch history graph
+
+## Branch
+git branch                        # List branches
+git branch <name>                 # Create a branch
+git checkout <name>               # Switch branch
+git checkout -b <name>            # Create and switch branch
+git branch -d <name>              # Delete branch
+git merge <name>                  # Merge branch into current
+
+## Remote
+git remote -v                     # Show remotes
+git remote add origin <url>       # Add a remote
+git remote remove origin          # Remove a remote
+
+## Push & Pull
+git push origin <branch>          # Push to remote
+git pull origin <branch>          # Pull from remote
+git push -u origin <branch>       # Push and set upstream
+git fetch                         # Fetch all remote changes
+git fetch origin <branch>         # Fetch specific branch
+
+## Restore / Discard
+git restore <file>                # Restore file from index
+git restore --source=HEAD <file>  # Restore file from last commit
+git restore .                     # Restore all files
+git checkout -- <file>            # Discard changes in working directory (legacy)
+git checkout <commit> -- <file>   # Restore file from a specific commit
+git reset --hard HEAD             # Discard all uncommitted changes
+git reset --hard origin/main      # Reset to remote main
+
+## Tags
+git tag v1.0                      # Create a tag
+git tag -a v1.0 -m "message"      # Annotated tag
+git push --tags                   # Push tags to remote
+
+## Stash
+git stash                         # Stash current changes
+git stash list                    # List stashes
+git stash pop                     # Restore latest stash
+git stash drop                    # Drop latest stash
+git stash clear                   # Drop all stashes
+
+## Undo
+git revert <commit>               # Create a new commit that undoes changes
+git reset <commit>                # Move branch pointer (soft/hard/--mixed)
+git cherry-pick <commit>          # Apply a commit from another branch
+
+## Helpful one-liners
+git add -A && git commit -m "msg" # Stage all and commit
+git pull --rebase origin main     # Pull with rebase
+git push origin --force-with-lease # Force push (safer than --force)

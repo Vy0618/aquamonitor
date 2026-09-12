@@ -4,10 +4,26 @@ export function createMarkerLayer() {
     return L.layerGroup();
 }
 
-export function createMarker(station) {
+function getBottleCount(station) {
+    return station.bottle_count || {};
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) {
+        return "no data";
+    }
+
+    const date = new Date(timestamp);
+    return Number.isNaN(date.getTime()) ? "no data" : date.toLocaleString();
+}
+
+export function createMarker(station, onStationSelect) {
     const longitude = Number(station.location.coordinates[0]);
     const latitude = Number(station.location.coordinates[1]);
-    const detections = Number(station.detections);
+    const bottleCount = getBottleCount(station);
+    const count = Number(bottleCount.count || 0);
+    const positive = Number(bottleCount.positive || 0);
+    const negative = Number(bottleCount.negative || 0);
     const marker = L.marker([latitude, longitude]);
 
     marker.bindPopup(`
@@ -17,21 +33,49 @@ export function createMarker(station) {
 
         <br>
 
-        Detections:
-        ${detections}
+        <br>
+        Bottle count: ${count}
+        <br>
+        Positive: ${positive}
+        <br>
+        Negative: ${negative}
+        <br>
+        Last update: ${formatTimestamp(bottleCount.timestamp)}
     `);
+
+    if (onStationSelect) {
+        marker.on("click", () => onStationSelect(station.station_id));
+    }
 
     return marker;
 }
 
-export function updateMarkers(map, markerLayer, stationList) {
+export function updateMarkers(map, markerLayer, stationList, onStationSelect, selectedStationId) {
     markerLayer.clearLayers();
 
     stationList.forEach(station => {
-        markerLayer.addLayer(createMarker(station));
+        const marker = createMarker(station, onStationSelect);
+        markerLayer.addLayer(marker);
     });
 
     updateMarkerVisibility(map, markerLayer);
+
+    // Reopen the popup for the previously selected station so it
+    // survives the layer refresh caused by polling / zoom updates.
+    if (selectedStationId != null) {
+        const station = stationList.find(s => s.station_id === selectedStationId);
+        if (station) {
+            const lat = Number(station.location.coordinates[1]);
+            const lng = Number(station.location.coordinates[0]);
+            const match = markerLayer.getLayers().find(m => {
+                const ll = m.getLatLng();
+                return Math.abs(ll.lat - lat) < 0.0001 && Math.abs(ll.lng - lng) < 0.0001;
+            });
+            if (match) {
+                match.openPopup();
+            }
+        }
+    }
 }
 
 export function updateMarkerVisibility(
