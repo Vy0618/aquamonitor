@@ -1,7 +1,7 @@
 """Live camera runner for detector -> ByteTrack -> bottle line counter.
 
 Run from the repository root with:
-``ultralytics-env/bin/python backend/detection/object-ident.py``.
+``.venv/bin/python backend/detection/object-ident.py``.
 Press ``q`` to quit.
 """
 

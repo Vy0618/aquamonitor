@@ -103,7 +103,7 @@ aquamonitor/
 ├── stations.json             # Dados de exemplo (30 estações × 2 localizações = 60 docs)
 ├── requirements.txt          # ⚠️ pip freeze do sistema — deps reais: fastapi, uvicorn, pydantic, etc.
 ├── .gitignore
-└── .venv/ + ultralytics-env/  # Dois venvs (.venv = backend, ultralytics = YOLOv8/detecção)
+└── .venv/ + ultralytics-env/  # Dois venvs (.venv = backend + detecção, ultralytics = YOLOv8/treino)
 ```
 
 ---
@@ -132,7 +132,8 @@ source .venv/bin/activate
 pip install fastapi uvicorn pydantic pymongo supervision==0.27.0 lap==0.5.12 cython-bbox==0.1.5 opencv-python numpy==1.26.4 requests
 
 # Ambiente Ultralytics (YOLOv8/treino — já configurado como ultralytics-env/)
-# Não é necessário para o pipeline de detecção local
+# NÃO é necessário para o pipeline de detecção local (usa .venv)
+```
 ```
 
 ### 3. MongoDB
@@ -193,10 +194,10 @@ curl -X POST http://127.0.0.1:8000/api/stations/1/bottle-events \
 
 ```bash
 # Sem envio ao backend
-ultralytics-env/bin/python backend/detection/object-ident.py
+.venv/bin/python backend/detection/object-ident.py
 
 # Com envio ao backend (publica a cada 5s para o FastAPI)
-ultralytics-env/bin/python backend/detection/object-ident.py --publish
+.venv/bin/python backend/detection/object-ident.py --publish
 ```
 
 ### Executar Testes
@@ -338,8 +339,8 @@ python -m http.server 3000
 ### Execução Local
 
 ```bash
-ultralytics-env/bin/python backend/detection/object-ident.py
-ultralytics-env/bin/python backend/detection/object-ident.py --publish
+.venv/bin/python backend/detection/object-ident.py
+.venv/bin/python backend/detection/object-ident.py --publish
 ```
 
 ---
@@ -447,7 +448,7 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 2. **MongoClient precisa de `serverSelectionTimeoutMS=5000`** para não travar se MongoDB estiver indisponível. O código atual NÃO tem esse timeout (pode causar hang no startup).
 
-3. **Dois venvs:** `.venv` (FastAPI pipeline) e `ultralytics-env` (YOLOv8/treino). Use caminhos explícitos: `.venv/bin/python` para backend, `ultralytics-env/bin/python` para detecção.
+3. **Dois venvs:** `.venv` (FastAPI pipeline + detecção) e `ultralytics-env` (YOLOv8/treino). O pipeline de detecção (object-ident.py) roda no `.venv` com OpenCVDnnDetector (SSD MobileNet). O `ultralytics-env` é apenas para YOLOv8/treino.
 
 4. **`object-ident.py` usa OpenCVDnnDetector (SSD MobileNet)**, não YOLOv8 `best.pt`. O `best.pt` existe no projeto mas não é usado pelo código atual.
 
@@ -455,7 +456,7 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 6. **GET /api/stations retorna `bottle_count`** de MongoDB aggregation (`$sort` + `$group`), não lookup individual. `detections` espelha `bottle_count.count` para backward compatibility.
 
-7. **`create_station` aceita `dict`**, não Pydantic model. Verifica duplicidade antes de insert.
+7. **`create_station` aceita `dict`**, não Pydantic model. Faz insert_one diretamente SEM verificar duplicidade — station_ids duplicados causarão erro do MongoDB.
 
 8. **`BottleCountPayload` não tem `session_id`** — POST é fire-and-forget.
 
