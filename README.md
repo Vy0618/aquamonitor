@@ -1,10 +1,11 @@
 # Aqua Monitor
 
-Monitoramento de estações de coleta com visão computacional — rastreamento de garrafas plásticas em rios usando YOLOv8 + ByteTrack.
+Monitoramento de estações de coleta com visão computacional — rastreamento de garrafas plásticas em rios usando SSD MobileNet V3 + ByteTrack.
 
 **Projeto:** Monitoramento de estações de coleta com visão computacional  
 **Local:** Afluente do Rio Santos, São Paulo — Brasil  
-**Última atualização:** Setembro 2026
+**Última atualização:** Setembro 2026  
+**Status:** Todas as fases concluídas ✅
 
 ---
 
@@ -27,32 +28,34 @@ Monitoramento de estações de coleta com visão computacional — rastreamento 
 
 ## 📋 Visão Geral
 
-**Aqua Monitor** é um sistema de monitoramento ambiental que utiliza visão computacional para detectar e rastrear garrafas plásticas em corpos d'água. O pipeline captura vídeo de câmeras (RPi), processa frames com YOLOv8 + ByteTrack, conta cruzamentos de linha e publica resultados em tempo real para um dashboard web.
+**Aqua Monitor** é um sistema de monitoramento ambiental que utiliza visão computacional para detectar e rastrear garrafas plásticas em corpos d'água. O pipeline captura vídeo de câmeras (RPi), processa frames com SSD MobileNet V3 + ByteTrack, conta cruzamentos de linha e publica resultados em tempo real para um dashboard web.
 
 ### Estado Atual do Projeto (Set/2026)
+
+**Todas as fases concluídas.**
 
 | Fase | Status | Descrição |
 |------|--------|-----------|
 | 1 | ✅ Concluída | Bibliotecas centrais (`tracker.py`, `geometry.py`, `line_counter.py`, `config.py`) |
 | 2 | ✅ Concluída | Integração (`detection_pipeline.py`, `api_client.py`, `object-ident.py`) |
-| 3 | ⚠️ Parcial | Backend: `api_client.py` existe, endpoint `POST /api/stations/{id}/bottle-count` **não implementado** em `app.py` |
-| 4 | ❌ Não iniciada | Frontend: `bottle-counter.js` **não criado** (estética e filtros do dashboard estão completos) |
-| 5 | ❌ Não iniciada | Testes: nenhum teste implementado |
+| 3 | ✅ Concluída | Backend completo com endpoints `bottle-count` e `bottle-events` |
+| 4 | ✅ Concluída | Frontend com `bottle-counter.js` e polling ativo no `main.js` |
+| 5 | ✅ Concluída | 3 arquivos de teste com 13 testes unittest |
 
-**Arquitetura atual:** YOLOv8 + ByteTrack (biblioteca Supervision), pipeline modular e composável, detecção de garrafas com contagem de cruzamento de linha.
+**Arquitetura atual:** SSD MobileNet V3 + ByteTrack (biblioteca Supervision), pipeline modular e composável, detecção de garrafas com contagem de cruzamento de linha.
 
 ---
 
 ## 🏗️ Arquitetura
 
-O pipeline de dadoso segue este fluxo:
+O pipeline segue este fluxo:
 
 ```
-Câmera (RPi) → YOLOv8 + OpenCV DNN → ByteTrack → Line Counter → FastAPI :8000 → MongoDB
-                                                                                          │
-                                                                          GET /api/stations │
-                                                                                          ▼
-                                                                   Dashboard Leaflet + Heatmap
+Câmera (RPi) → SSD MobileNet V3 (OpenCV DNN) → ByteTrack → LineCounter → FastAPI :8000 → MongoDB
+                                                                                                    │
+                                                                          GET /api/stations          │
+                                                                                                    ▼
+                                                                             Dashboard Leaflet + Heatmap + Polling 3s
 ```
 
 ---
@@ -62,8 +65,11 @@ Câmera (RPi) → YOLOv8 + OpenCV DNN → ByteTrack → Line Counter → FastAPI
 ```
 aquamonitor/
 ├── backend/
-│   ├── app.py                    # FastAPI — 3 rotas CRUD (POST/GET/DELETE /api/stations)
+│   ├── app.py                    # FastAPI — 6 rotas (CRUD + bottle-count + bottle-events)
 │   ├── test_mongodb.py           # Script de verificação da conexão MongoDB
+│   ├── test_station_metrics.py   # 4 testes unittest (GET /api/stations com bottle_count)
+│   ├── test_bottle_events.py     # 5 testes unittest (ingestão idempotente de events)
+│   ├── test_bottle_count.py      # 4 testes unittest (associação métricas↔estações)
 │   └── detection/
 │       ├── __init__.py           # Docstring do módulo
 │       ├── config.py             # Configurações: COUNTING_LINE, BYTETRACK, ApiConfig
@@ -72,20 +78,21 @@ aquamonitor/
 │       ├── tracker.py            # ByteTrack wrapper (detector-agnostic)
 │       ├── detection_pipeline.py # Orquestra detector → tracker → counter → API
 │       ├── api_client.py         # HTTP client para publicar contagem no backend
-│       ├── object-ident.py       # Runner principal: câmera → pipeline
+│       ├── object-ident.py       # Runner principal: câmera → pipeline (com -)
 │       └── models/
-│           ├── coco.names                # 80 classes COCO
+│           ├── coco.names                # 90 classes COCO
 │           ├── frozen_inference_graph.pb # Pesos do SSD MobileNet (OpenCV DNN)
 │           └── ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt  # Config do modelo
 ├── dashboard/
-│   ├── index.html            # Mapa Leaflet + filtros + uptime
+│   ├── index.html            # Mapa Leaflet + filtros + uptime + bottle count
 │   ├── crud.html             # Formulários POST/DELETE de estações
 │   ├── style.css             # Tema escuro monocromático ("BIOS antiga")
 │   ├── cadastro-style.css    # Estilos da página de cadastro
 │   └── js/
 │       ├── api.js            # fetchStations() → GET http://127.0.0.1:8000/api/stations
+│       ├── bottle-counter.js # fetchBottleCount() → GET /api/stations/{id}/bottle-count
 │       ├── config.js         # HEATMAP_CONFIG (raios, opacidades, zoom thresholds)
-│       ├── main.js           # Orquestrador principal (init map, fetchers, eventos)
+│       ├── main.js           # Orquestrador principal (init map, fetchers, eventos, polling)
 │       ├── map.js            # Cria mapa Leaflet [-23.5015, -46.4526] zoom 13
 │       ├── heatmap.js        # Intensidade logarítmica, raio adaptativo por zoom
 │       ├── markers.js        # Marcadores L.marker com popups (visíveis zoom ≥ 14)
@@ -94,11 +101,9 @@ aquamonitor/
 │       ├── uptime.js         # setInterval 1s, conta desde Date.now()
 │       └── zoom.js           # L.control top-right mostrando zoom atual
 ├── stations.json             # Dados de exemplo (30 estações × 2 localizações = 60 docs)
-├── requirements.txt          # Dependências Python
-├── best.pt                   # Peso YOLOv8 (classe 0 = bottle) — NÃO rastrear no git
-├── runs/                     # Saídas de detecção YOLO — NÃO rastrear no git
-├── tmp/                      # Arquivos temporários matplotlib
-└── notes.txt                 # Notas detalhadas do projeto
+├── requirements.txt          # ⚠️ pip freeze do sistema — deps reais: fastapi, uvicorn, pydantic, etc.
+├── .gitignore
+└── .venv/ + ultralytics-env/  # Dois venvs (.venv = backend, ultralytics = YOLOv8/detecção)
 ```
 
 ---
@@ -118,16 +123,16 @@ git clone https://github.com/Vy0618/aquamonitor.git
 cd aquamonitor
 ```
 
-### 2. Ambiente Virtual Python
+### 2. Ambientes Virtuais Python
 
 ```bash
 # Ambiente principal (FastAPI + backend)
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install fastapi uvicorn pydantic pymongo supervision==0.27.0 lap==0.5.12 cython-bbox==0.1.5 opencv-python numpy==1.26.4 requests
 
-# Ambiente Ultralytics (YOLOv8 + ByteTrack)
-# Já configurado como ultralytics-env/
+# Ambiente Ultralytics (YOLOv8/treino — já configurado como ultralytics-env/)
+# Não é necessário para o pipeline de detecção local
 ```
 
 ### 3. MongoDB
@@ -169,6 +174,19 @@ curl -X POST http://127.0.0.1:8000/api/stations \
 
 # Deletar estação
 curl -X DELETE http://127.0.0.1:8000/api/stations/99
+
+# Inserir contagem de garrafas
+curl -X POST http://127.0.0.1:8000/api/stations/1/bottle-count \
+  -H "Content-Type: application/json" \
+  -d '{"count":5,"count_by_direction":{"positive":3,"negative":2}}'
+
+# Recuperar última contagem
+curl http://127.0.0.1:8000/api/stations/1/bottle-count
+
+# Inserir evento de cruzamento (idempotente)
+curl -X POST http://127.0.0.1:8000/api/stations/1/bottle-events \
+  -H "Content-Type: application/json" \
+  -d '{"event_id":"camera-1-track-42-2026-09-12T12:00:00Z","direction":"positive","timestamp":"2026-09-12T12:00:00Z"}'
 ```
 
 ### Detecção Local
@@ -177,19 +195,36 @@ curl -X DELETE http://127.0.0.1:8000/api/stations/99
 # Sem envio ao backend
 ultralytics-env/bin/python backend/detection/object-ident.py
 
-# Com envio ao backend (Fase 3 — requer endpoint implementado)
+# Com envio ao backend (publica a cada 5s para o FastAPI)
 ultralytics-env/bin/python backend/detection/object-ident.py --publish
+```
+
+### Executar Testes
+
+```bash
+.venv/bin/python -m unittest discover -v
+.venv/bin/python -m unittest backend.test_station_metrics -v
+.venv/bin/python -m unittest backend.test_bottle_events -v
+.venv/bin/python -m unittest backend.test_bottle_count -v
+```
+
+### Dashboard
+
+```bash
+cd /home/vyzxc/aquamonitor/dashboard
+python -m http.server 3000
+# Acesse http://127.0.0.1:3000
 ```
 
 ---
 
 ## 🗄️ Camada de Dados — MongoDB
 
-| Parâmetro     | Valor                    |
-|---------------|--------------------------|
-| **Banco**     | `aquamonitor`            |
-| **Coleção**   | `stations`               |
-| **Porta**     | `27017`                  |
+| Parâmetro     | Valor                                |
+|---------------|--------------------------------------|
+| **Banco**     | `aquamonitor`                       |
+| **Coleções**  | `stations`, `bottle_metrics`, `bottle_events` |
+| **Porta**     | `27017`                             |
 | **URI**       | `mongodb://localhost:27017/aquamonitor` |
 
 ### Documento Típico
@@ -213,6 +248,18 @@ ultralytics-env/bin/python backend/detection/object-ident.py --publish
 }
 ```
 
+### Collections
+
+**`bottle_metrics`** — agregados de contagem:
+```json
+{ "station_id": 1, "count": 37, "count_by_direction": {"positive": 20, "negative": 17}, "timestamp": "2026-09-12T14:20:00" }
+```
+
+**`bottle_events`** — eventos individuais de cruzamento (idempotentes):
+```json
+{ "event_id": "camera-1-track-42-2026-09-12T12:00:00Z", "station_id": 1, "direction": "positive", "timestamp": "2026-09-12T12:00:00Z" }
+```
+
 > ⚠️ GeoJSON usa `[longitude, latitude]` — **não** `[latitude, longitude]`.
 
 ---
@@ -220,22 +267,34 @@ ultralytics-env/bin/python backend/detection/object-ident.py --publish
 ## 🐍 Backend — FastAPI
 
 **Arquivo:** `backend/app.py`  
-**Dependências:** `fastapi`, `uvicorn`, `pymongo`, `fastapi.middleware.cors.CORSMiddleware`
+**Dependências:** `fastapi`, `uvicorn`, `pydantic`, `pymongo`, `fastapi.middleware.cors.CORSMiddleware`
 
 ### Rotas Implementadas
 
-| Método   | Rota                              | Descrição                    |
-|----------|-----------------------------------|------------------------------|
-| `POST`   | `/api/stations`                   | Criar nova estação           |
-| `GET`    | `/api/stations`                   | Listar todas as estações     |
-| `DELETE` | `/api/stations/{station_id}`      | Deletar por station_id       |
+| Método   | Rota                                        | Descrição                               |
+|----------|---------------------------------------------|-----------------------------------------|
+| `POST`   | `/api/stations`                             | Criar nova estação                      |
+| `GET`    | `/api/stations`                             | Listar estações com `bottle_count`      |
+| `DELETE` | `/api/stations/{station_id}`               | Deletar por station_id                  |
+| `POST`   | `/api/stations/{station_id}/bottle-count`  | Ingestão de contagem agregada           |
+| `GET`    | `/api/stations/{station_id}/bottle-count`  | Recuperar última contagem               |
+| `POST`   | `/api/stations/{station_id}/bottle-events` | Ingestão de evento individual (idempotente) |
 
-### Rotas Planejadas (Fase 3)
+### Modelos Pydantic
 
-| Método   | Rota                                        | Descrição               |
-|----------|---------------------------------------------|-------------------------|
-| `POST`   | `/api/stations/{station_id}/bottle-count`   | Ingerir contagem        |
-| `GET`    | `/api/stations/{station_id}/bottle-count`   | Recuperar contagem      |
+**`BottleCountPayload`**
+```json
+{ "count": 5, "count_by_direction": {"positive": 3, "negative": 2} }
+```
+
+**`BottleEventPayload`**
+```json
+{ "event_id": "uuid-string", "direction": "positive", "timestamp": "2026-09-12T12:00:00Z" }
+```
+
+- `event_id` não pode ser vazio (validador)
+- `timestamp` deve incluir timezone (validador)
+- Índice único em `event_id` garante idempotência → DuplicateKeyError retorna HTTP 409
 
 ---
 
@@ -257,7 +316,7 @@ ultralytics-env/bin/python backend/detection/object-ident.py --publish
    - Line segment: COUNTING_LINE.start=(0,240) → end=(640,240)
    - Direction: "any" (ambos os sentidos)
    - Expira tracks inativos após max_missing_frames=90
-   - Cada objeto contado UMA VEZ (_tracked_ids set)
+   - Cada objeto contado UMA VEZ (_counted_ids set)
 
 4. DetectionPipeline (orquestração)
    - process(detections) → PipelineResult(tracks, events, total_count)
@@ -266,20 +325,21 @@ ultralytics-env/bin/python backend/detection/object-ident.py --publish
 
 ### Módulos de Visão Computacional
 
-| Arquivo                   | Função                                      |
-|---------------------------|---------------------------------------------|
+| Arquivo                    | Função                                              |
+|----------------------------|-----------------------------------------------------|
 | `geometry.py`             | Funções puras: `centroid`, `signed_distance`, `crosses_line`, `segments_intersect` |
-| `tracker.py`              | Wrapper ByteTrack (detector-agnostic)       |
-| `line_counter.py`         | Contagem stateful de cruzamentos            |
+| `tracker.py`              | Wrapper ByteTrack (detector-agnostic)               |
+| `line_counter.py`         | Contagem stateful de cruzamentos                    |
 | `config.py`               | Configurações globais (COUNTING_LINE, BYTETRACK, ApiConfig) |
-| `detection_pipeline.py`   | Orquestra detector → tracker → counter → API |
-| `api_client.py`           | HTTP client para publicar contagem          |
-| `object-ident.py`         | Runner principal (câmera → pipeline)        |
+| `detection_pipeline.py`   | Orquestra detector → tracker → counter → API        |
+| `api_client.py`           | HTTP client para publicar contagem                  |
+| `object-ident.py`         | Runner principal (câmera → pipeline)                |
 
 ### Execução Local
 
 ```bash
 ultralytics-env/bin/python backend/detection/object-ident.py
+ultralytics-env/bin/python backend/detection/object-ident.py --publish
 ```
 
 ---
@@ -292,8 +352,9 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 | Módulo        | Função                                                |
 |---------------|-------------------------------------------------------|
-| `main.js`     | Orquestrador: `createMap()`, `fetchStations()`, `createHeatmap()`, `updateMap()` |
+| `main.js`     | Orquestrador: `createMap()`, `fetchStations()`, `startBottlePolling()` |
 | `api.js`      | `fetchStations()` → GET `http://127.0.0.1:8000/api/stations` |
+| `bottle-counter.js` | `fetchBottleCount(stationId)` → GET `/api/stations/{id}/bottle-count` |
 | `map.js`      | Mapa Leaflet em `[-23.5015, -46.4526]` zoom 13       |
 | `heatmap.js`  | Intensidade logarítmica (`Math.log1p`), raio adaptativo por zoom |
 | `markers.js`  | Marcadores com popup (station_id + detections), visíveis zoom ≥ 14 |
@@ -302,6 +363,13 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 | `config.js`   | `HEATMAP_CONFIG` centralizado                         |
 | `uptime.js`   | `setInterval` 1s, contador desde `Date.now()`         |
 | `zoom.js`     | `L.control` top-right mostrando zoom atual            |
+
+### Polling de Bottle Count
+
+`main.js` usa `startBottlePolling(stationId, updateStationMetrics, updateVisualization)` com intervalo de **3 segundos**:
+1. `fetchBottleCount(stationId)` → GET `/api/stations/{id}/bottle-count`
+2. `updateStationMetrics` atualiza `station.bottle_count` e `station.detections` no array in-memory
+3. `updateVisualization()` re-renderiza heatmap e markers
 
 ### Estilização
 
@@ -316,8 +384,8 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 ```
 ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────┐
-│  CÂMERA  │───▶│  YOLOv8  │───▶│  BYTE    │───▶│ Line     │───▶│ FastAPI│
-│  (RPi)   │    │ +OpenCV  │    │ TRACK    │    │ Counter  │    │ :8000│
+│  CÂMERA  │───▶│  SSD     │───▶│  BYTE    │───▶│ Line     │───▶│ FastAPI│
+│  (RPi)   │    │ MobileNet│    │ TRACK    │    │ Counter  │    │ :8000│
 └──────────┘    └──────────┘    └──────────┘    └────┬─────┘    └──────┘
                                                        │
                                                        │ count aggregate
@@ -334,6 +402,7 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
                                                 │  Dashboard │
                                                 │  Leaflet   │
                                                 │  +Heatmap  │
+                                                │  +Polling  │
                                                 └────────────┘
 ```
 
@@ -343,64 +412,70 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 ### Python (Backend)
 
-| Pacote               | Versão  | Uso                                |
-|----------------------|---------|------------------------------------|
-| `fastapi`            | —       | API REST                         |
-| `uvicorn`            | —       | Servidor ASGI                     |
-| `pymongo`            | —       | Cliente MongoDB                   |
-| `python-dotenv`      | —       | Variáveis de ambiente             |
-| `supervision`        | 0.27.0  | ByteTrack tracker                 |
-| `lap`                | 0.5.12  | Dependência do ByteTrack          |
-| `cython-bbox`        | 0.1.5   | Dependência do ByteTrack          |
-| `opencv-python`      | —       | YOLOv8 + OpenCV DNN               |
-| `numpy`              | 1.26.4  | Cálculos numéricos                |
+| Pacote            | Versão   | Uso                                |
+|-------------------|----------|------------------------------------|
+| `fastapi`        | ≥0.141.0 | API REST                           |
+| `uvicorn`        | ≥0.52.0  | Servidor ASGI                      |
+| `pydantic`       | ≥2.0.0   | Models e validação                 |
+| `pymongo`        | —        | Cliente MongoDB                    |
+| `supervision`    | 0.27.0   | ByteTrack tracker                  |
+| `lap`            | 0.5.12   | Dependência do ByteTrack          |
+| `cython-bbox`    | 0.1.5    | Dependência do ByteTrack          |
+| `opencv-python`  | —        | SSD MobileNet + OpenCV DNN         |
+| `numpy`          | 1.26.4   | Cálculos numéricos                 |
+| `requests`       | —        | api_client.py HTTP client          |
 
 ### JavaScript (Frontend)
 
-| Biblioteca   | Versão   | Uso                          |
-|-------------|----------|------------------------------|
-| `leaflet`   | 1.9.4    | Mapa interativo              |
-| `leaflet.heat` | —      | Camada de calor              |
-| OpenStreetMap tiles | — | Tiles do mapa             |
+| Biblioteca     | Versão | Uso                    |
+|---------------|--------|------------------------|
+| `leaflet`    | 1.9.4  | Mapa interativo        |
+| `leaflet.heat` | —    | Camada de calor        |
+| OpenStreetMap tiles | — | Tiles do mapa     |
 
 ### Modelos
 
-- **YOLOv8** (`best.pt`) — Classe 0 = bottle
 - **SSD MobileNet V3 Large COCO** (`frozen_inference_graph.pb`) — Detector OpenCV DNN local
+
+> ⚠️ `requirements.txt` é um `pip freeze` do sistema (109 pacotes). Instale apenas as dependências reais listadas acima.
 
 ---
 
 ## 📝 Notas Importantes
 
-1. O `app.py` é a versão "core" com 3 rotas apenas — a **Fase 3** (bottle-count) não foi implementada. O `api_client.py` faz POST para `/api/stations/{id}/bottle-count`, mas o `app.py` não recebe essa rota.
+1. **`requirements.txt` é um `pip freeze` do sistema** — contém 109 pacotes Ubuntu. Dependências reais são: fastapi, uvicorn, pydantic, opencv-python, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests.
 
-2. O pipeline de detecção está funcional, mas o `object-ident.py` usa **OpenCV DNN** como detector local, não YOLOv8. O `best.pt` está no projeto mas o código atual usa `frozen_inference_graph.pb`.
+2. **MongoClient precisa de `serverSelectionTimeoutMS=5000`** para não travar se MongoDB estiver indisponível. O código atual NÃO tem esse timeout (pode causar hang no startup).
 
-3. **MongoDB** é o servidor; **mongosh** é o cliente/terminal.
+3. **Dois venvs:** `.venv` (FastAPI pipeline) e `ultralytics-env` (YOLOv8/treino). Use caminhos explícitos: `.venv/bin/python` para backend, `ultralytics-env/bin/python` para detecção.
 
-4. `.venv` isola dependências Python. `ultralytics-env` tem o ambiente para YOLOv8/ByteTrack.
+4. **`object-ident.py` usa OpenCVDnnDetector (SSD MobileNet)**, não YOLOv8 `best.pt`. O `best.pt` existe no projeto mas não é usado pelo código atual.
 
-5. **Portas:** MongoDB `27017`, FastAPI `8000`.
+5. **GeoJSON usa `[longitude, latitude]`** — ordem inversa do padrão GPS.
 
-6. GeoJSON usa `[longitude, latitude]` — ordem inversa do padrão GPS.
+6. **GET /api/stations retorna `bottle_count`** de MongoDB aggregation (`$sort` + `$group`), não lookup individual. `detections` espelha `bottle_count.count` para backward compatibility.
 
-7. O heatmap usa intensidade logarítmica (`Math.log1p`) e raio adaptativo por zoom.
+7. **`create_station` aceita `dict`**, não Pydantic model. Verifica duplicidade antes de insert.
 
-8. Filtros de localidade são hierárquicos e cascatais (estado → cidade → distrito).
+8. **`BottleCountPayload` não tem `session_id`** — POST é fire-and-forget.
 
-9. A estética do dashboard é monocromática ("BIOS antiga").
+9. **`LineCounter` não tem `save_state()`/`load_state()`** — estado não persistido em MongoDB.
 
-10. **Cuidado com:** `db.dropDatabase()`, `db.collection.drop()`, `deleteMany({})`.
+10. **`event_id` com índice único** em `bottle_events_collection` → DuplicateKeyError retorna HTTP 409 (idempotência).
 
-11. **Não exponha** MongoDB à rede sem autenticação e firewall adequado.
+11. **Testes usam `unittest`** (não pytest). Com Mock para collections MongoDB.
 
-12. `best.pt` e `runs/` estão no `.gitignore` mas foram commitados antes da atualização — remova com:
-    ```bash
-    git rm --cached best.pt
-    git rm -r --cached runs/
-    ```
+12. **Cuidado com:** `db.dropDatabase()`, `db.collection.drop()`, `deleteMany({})`.
 
-13. `implementation.txt` contém o plano original de 18 fases (Fases 1-2 feitas, 3 parcial).
+13. **Não exponha MongoDB** à rede sem autenticação e firewall adequado.
+
+14. **Objetos `ObjectId` do MongoDB** não são JSON-serializáveis. Converta para string antes de retornar: `result["_id"] = str(result["_id"])`.
+
+15. O heatmap usa intensidade logarítmica (`Math.log1p`) e raio adaptativo por zoom.
+
+16. Os filtros de localidade são hierárquicos e cascatais (estado → cidade → distrito).
+
+17. A estética do dashboard é monocromática ("BIOS antiga").
 
 ---
 

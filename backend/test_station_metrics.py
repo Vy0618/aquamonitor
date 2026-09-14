@@ -11,6 +11,7 @@ class StationMetricsTests(unittest.TestCase):
     def setUp(self) -> None:
         application.stations_collection = Mock()
         application.bottle_metrics_collection = Mock()
+        application.bottle_metrics_collection.index_information.return_value = {}
 
     def test_station_with_metric_uses_latest_count_everywhere(self) -> None:
         location = {"type": "Point", "coordinates": [-46.4526, -23.5015]}

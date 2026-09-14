@@ -1,8 +1,13 @@
 from datetime import UTC, datetime
+from typing import Literal
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, field_validator
+from pymongo import ASCENDING, MongoClient
+from pymongo.errors import DuplicateKeyError
+from typing import Literal
 
 app = FastAPI()
 
@@ -23,7 +28,7 @@ db = client["aquamonitor"]
 
 stations_collection = db["stations"]
 bottle_metrics_collection = db["bottle_metrics"]
-
+bottle_events_collection = db["bottle_events"]
 
 # ============================
 # Pydantic models
@@ -32,6 +37,37 @@ bottle_metrics_collection = db["bottle_metrics"]
 class BottleCountPayload(BaseModel):
     count: int
     count_by_direction: dict[str, int]
+
+class BottleEventPayload(BaseModel):
+    """An individual bottle crossing reported by the detection pipeline."""
+
+    event_id: str
+    direction: Literal["positive", "negative"]
+    timestamp: datetime
+
+    @field_validator("event_id")
+    @classmethod
+    def event_id_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("event_id must not be blank")
+        return value
+
+    @field_validator("timestamp")
+    @classmethod
+    def timestamp_must_include_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timestamp must include a timezone")
+        return value
+
+
+@app.on_event("startup")
+def create_bottle_event_indexes() -> None:
+    """Enforce idempotency even when two requests arrive concurrently."""
+    bottle_events_collection.create_index(
+        [("event_id", ASCENDING)],
+        name="unique_bottle_event_id",
+        unique=True,
+    )
 
 
 def create_bottle_metrics_indexes() -> None:
@@ -227,6 +263,37 @@ def get_bottle_count(station_id: int):
     }
 
 
+
+
+@app.post("/api/stations/{station_id}/bottle-events", status_code=201)
+def ingest_bottle_event(station_id: int, payload: BottleEventPayload):
+    """Store one crossing event, rejecting duplicate event IDs."""
+    if stations_collection.find_one({"station_id": station_id}) is None:
+        raise HTTPException(status_code=404, detail="Station not found")
+
+    document = {
+        "event_id": payload.event_id,
+        "station_id": station_id,
+        "direction": payload.direction,
+        "timestamp": payload.timestamp,
+    }
+    try:
+        result = bottle_events_collection.insert_one(document)
+    except DuplicateKeyError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Bottle event already exists",
+        ) from exc
+
+    return {
+        "message": "Bottle event ingested successfully",
+        "id": str(result.inserted_id),
+        "event_id": payload.event_id,
+        "station_id": station_id,
+    }
+
+
+# ============================
 # ============================
 # Update(não existem motivos por enquanto)
 # ============================
