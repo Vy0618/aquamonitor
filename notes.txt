@@ -47,7 +47,7 @@ aquamonitor/
 │       ├── uptime.js         # setInterval 1s, conta desde Date.now()
 │       └── zoom.js           # L.control top-right mostrando zoom atual
 ├── stations.json             # Dados de exemplo (30 estacoes × 2 localizacoes = 60 docs)
-├── requirements.txt          # ⚠️ CONTEM pip freeze do sistema (109 pacotes). Dependencias reais: fastapi, uvicorn, pydantic, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests
+├── requirements.txt          # 9 deps: fastapi, uvicorn, pydantic, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests
 ├── .gitignore
 ├── notes.txt                 # Este arquivo
 └── .venv/ + ultralytics-env/  # Dois venvs (.venv = backend + detecção, ultralytics = YOLOv8/treino)
@@ -274,7 +274,7 @@ Fluxo de polling:
 8. ARQUIVOS DE CONFIGURACAO E DOCUMENTACAO
 ==============================================================================
 
-- requirements.txt: ⚠️ CONTEM pip freeze do sistema (109 pacotes). Dependencias reais:
+- requirements.txt: lista 9 dependências reais (fastapi, uvicorn, pydantic, opencv-python, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests). Não é um pip freeze do sistema.
   fastapi>=0.141.0, uvicorn>=0.52.0, pydantic>=2.0.0, opencv-python,
   supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests
 
@@ -393,7 +393,7 @@ Modelos:
 
 17. Nao exponha MongoDB a rede sem autenticacao e firewall adequado.
 
-18. requirements.txt e um pip freeze do sistema. Verifique antes de adicionar dependencias.
+18. requirements.txt lista apenas as 9 dependências reais do projeto. Verifique antes de adicionar dependencias.
 
 19. Quando verificar estado do git apos git restore, evite loops infinitos de git status --short.
     Se o output e identico em chamadas consecutivas, o working tree esta estavel — avance.

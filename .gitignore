@@ -16,10 +16,6 @@ runs/
 # Ultralytics environment
 ultralytics-env/
 
-# TensorFlow model files (OpenCV DNN)
-*.pb
-*.pbtxt
-
 # Temporary files
 tmp/
 *.tmp

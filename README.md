@@ -101,7 +101,7 @@ aquamonitor/
 │       ├── uptime.js         # setInterval 1s, conta desde Date.now()
 │       └── zoom.js           # L.control top-right mostrando zoom atual
 ├── stations.json             # Dados de exemplo (30 estações × 2 localizações = 60 docs)
-├── requirements.txt          # ⚠️ pip freeze do sistema — deps reais: fastapi, uvicorn, pydantic, etc.
+├── requirements.txt          # 9 deps: fastapi, uvicorn, pydantic, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests
 ├── .gitignore
 └── .venv/ + ultralytics-env/  # Dois venvs (.venv = backend + detecção, ultralytics = YOLOv8/treino)
 ```
@@ -438,13 +438,13 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 - **SSD MobileNet V3 Large COCO** (`frozen_inference_graph.pb`) — Detector OpenCV DNN local
 
-> ⚠️ `requirements.txt` é um `pip freeze` do sistema (109 pacotes). Instale apenas as dependências reais listadas acima.
+> ⚠️ `requirements.txt` contém apenas as 9 dependências reais do projeto. Instale-as com `pip install -r requirements.txt`.
 
 ---
 
 ## 📝 Notas Importantes
 
-1. **`requirements.txt` é um `pip freeze` do sistema** — contém 109 pacotes Ubuntu. Dependências reais são: fastapi, uvicorn, pydantic, opencv-python, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests.
+1. **`requirements.txt` contém apenas as 9 dependências reais do projeto**: fastapi, uvicorn, pydantic, opencv-python, supervision==0.27.0, lap==0.5.12, cython-bbox==0.1.5, numpy==1.26.4, pymongo, requests.
 
 2. **MongoClient precisa de `serverSelectionTimeoutMS=5000`** para não travar se MongoDB estiver indisponível. O código atual NÃO tem esse timeout (pode causar hang no startup).
 
