@@ -10,8 +10,17 @@ form.addEventListener("submit", async (event) => {
     const station_id =
         Number(document.getElementById("station_id").value);
 
-    const detections =
-        Number(document.getElementById("detections").value);
+    const country =
+        document.getElementById("country").value.trim();
+
+    const state =
+        document.getElementById("state").value.trim();
+
+    const city =
+        document.getElementById("city").value.trim();
+
+    const district =
+        document.getElementById("district").value.trim();
 
     const longitude =
         Number(document.getElementById("longitude").value);
@@ -23,15 +32,15 @@ form.addEventListener("submit", async (event) => {
     const station = {
 
         station_id: station_id,
-
-        detections: detections,
-
+        administrative: {
+            country: country,
+            state: state,
+            city: city,
+            district: district
+        },
         location: {
             type: "Point",
-            coordinates: [
-                longitude,
-                latitude
-            ]
+            coordinates: [longitude, latitude]
         }
 
     };

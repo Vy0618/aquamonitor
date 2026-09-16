@@ -122,6 +122,9 @@ export function updateMap({
     updateMarkers(map, markerLayer, filteredStations, onStationSelect, selectedStationId);
 }
 
-export function initializeMapEvents(map, updateVisualization) {
-    map.on("zoomend", updateVisualization);
+export function initializeMapEvents(map, updateHeatmapOnly, updateZoomIndicator) {
+    map.on("zoomend", () => {
+        updateHeatmapOnly();
+        updateZoomIndicator(map);
+    });
 }

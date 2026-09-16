@@ -7,6 +7,7 @@ import {
 } from "./filters.js";
 import {
     createHeatmap,
+    updateHeatmap,
     initializeMapEvents,
     updateMap
 } from "./heatmap.js";
@@ -87,10 +88,11 @@ async function initializeMap() {
         initializeFilterEvents(stations, updateVisualization);
         updateMarkers(map, markerLayer, stations, selectStation, selectedStationId);
 
-        initializeMapEvents(map, () => {
-            updateVisualization();
-            updateZoomIndicator(map, zoomDisplay);
-        });
+        initializeMapEvents(
+            map,
+            () => updateHeatmap(map, heat, filterStations(stations), HEATMAP_CONFIG),
+            () => updateZoomIndicator(map, zoomDisplay)
+        );
 
         updateVisualization();
 

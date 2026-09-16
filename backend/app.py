@@ -120,6 +120,13 @@ def create_station(station: dict):
     print("Collection:", stations_collection.name)
     print("Document:", station)
 
+    existing = stations_collection.find_one({"station_id": station.get("station_id")})
+    if existing is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Station with this station_id already exists"
+        )
+
     result = stations_collection.insert_one(station)
 
     print("Inserted ID:", result.inserted_id)
@@ -158,7 +165,7 @@ def get_stations():
         )
         result.append({
             "station_id": station["station_id"],
-            "location": station["location"],
+            "location": station.get("location"),
             "administrative": station.get("administrative"),
             # Compatibility field; bottle_count is the dashboard's source of truth.
             "detections": bottle_count["count"],

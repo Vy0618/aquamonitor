@@ -24,7 +24,7 @@ export function createMarker(station, onStationSelect) {
     const count = Number(bottleCount.count || 0);
     const positive = Number(bottleCount.positive || 0);
     const negative = Number(bottleCount.negative || 0);
-    const marker = L.marker([latitude, longitude]);
+    const marker = L.marker([latitude, longitude], { autoPan: false });
 
     marker.bindPopup(`
         <b>
@@ -41,7 +41,7 @@ export function createMarker(station, onStationSelect) {
         Negative: ${negative}
         <br>
         Last update: ${formatTimestamp(bottleCount.timestamp)}
-    `);
+    `, { autoPan: false});
 
     if (onStationSelect) {
         marker.on("click", () => onStationSelect(station.station_id));
