@@ -150,7 +150,7 @@ aside {
 }
 
 
-.bottle-count {
+.detection-count {
     font-size: 32px;
     font-weight: bold;
     color: #0f0;
@@ -183,7 +183,7 @@ aside {
     color: #f00;
 }
 
-.bottle-status {
+.detection-status {
     font-size: 10px;
     color: #555;
     margin-top: 5px;
@@ -270,38 +270,33 @@ body::after {
     border: none;
 }
 
-.station-label {
+.station-marker__pin {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
 
-    width: max-content;
+    width: 42px;
+    height: 42px;
 
-    padding: 4px 7px;
-
-    background: rgba(255, 255, 255, 0.9);
-
-    border: 1px solid rgba(0, 0, 0, 0.25);
-
-    border-radius: 5px;
-
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-
-    font-family: Arial, sans-serif;
-
-    font-size: 11px;
-
-    line-height: 1.3;
-
-    color: #222;
+    background: #001a00;
+    border: 2px solid #00ff41;
+    border-radius: 50%;
+    box-shadow: 0 0 9px rgba(0, 255, 65, 0.8);
+    color: #00ff41;
+    font-family: "Courier New", monospace;
+    line-height: 1;
+    cursor: pointer;
 }
 
-.station-label strong {
-    font-size: 11px;
+.station-marker__pin strong {
+    font-size: 12px;
 }
 
-.station-label span {
+.station-marker__pin span {
+    color: #fff;
     font-size: 10px;
-    opacity: 0.75;
+    margin-top: 2px;
 }
 
 #sidebar {

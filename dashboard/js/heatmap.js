@@ -1,8 +1,8 @@
 import { HEATMAP_CONFIG } from "./config.js";
 import { updateMarkers } from "./markers.js";
 
-export function getStationBottleCount(station) {
-    return Number(station.bottle_count?.count || 0);
+export function getStationDetectionCount(station) {
+    return Number(station.detections || 0);
 }
 
 export function calculateIntensity(
@@ -48,13 +48,13 @@ export function buildHeatData(
 ) {
     const maxDetections = Math.max(
         0,
-        ...stationList.map(getStationBottleCount)
+        ...stationList.map(getStationDetectionCount)
     );
 
     const heatData = stationList.map(station => {
         const longitude = Number(station.location.coordinates[0]);
         const latitude = Number(station.location.coordinates[1]);
-        const detections = getStationBottleCount(station);
+        const detections = getStationDetectionCount(station);
 
         return [
             latitude,

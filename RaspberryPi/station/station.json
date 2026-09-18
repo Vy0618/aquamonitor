@@ -1,0 +1,21 @@
+{
+  "_id": {
+    "$oid": "68c5d6c0a4e71b2f8d000001"
+  },
+  "station_id": 1,
+  "detections": 37,
+  "status": "online",
+  "location": {
+    "type": "Point",
+    "coordinates": [
+      -46.4526,
+      -23.5015
+    ]
+  },
+  "administrative": {
+    "country": "Brazil",
+    "state": "São Paulo",
+    "city": "Santos",
+    "district": "Baía de Santos"
+  }
+}

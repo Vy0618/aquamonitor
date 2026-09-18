@@ -4,8 +4,8 @@ export function createMarkerLayer() {
     return L.layerGroup();
 }
 
-function getBottleCount(station) {
-    return station.bottle_count || {};
+function getDetectionSummary(station) {
+    return station.detection_summary || {};
 }
 
 function formatTimestamp(timestamp) {
@@ -17,30 +17,49 @@ function formatTimestamp(timestamp) {
     return Number.isNaN(date.getTime()) ? "no data" : date.toLocaleString();
 }
 
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
 export function createMarker(station, onStationSelect) {
     const longitude = Number(station.location.coordinates[0]);
     const latitude = Number(station.location.coordinates[1]);
-    const bottleCount = getBottleCount(station);
-    const count = Number(bottleCount.count || 0);
-    const positive = Number(bottleCount.positive || 0);
-    const negative = Number(bottleCount.negative || 0);
-    const marker = L.marker([latitude, longitude], { autoPan: false });
+    const summary = getDetectionSummary(station);
+    const count = Number(summary.total || 0);
+    const types = Object.entries(summary.by_type || {})
+        .map(([type, total]) => `${escapeHtml(type)}: ${Number(total) || 0}`)
+        .join(", ") || "no detections";
+    const marker = L.marker([latitude, longitude], {
+        autoPan: false,
+        icon: L.divIcon({
+            className: "station-marker",
+            html: `<div class="station-marker__pin" title="Station ${station.station_id}">
+                <strong>S${station.station_id}</strong><span>${count}</span>
+            </div>`,
+            iconSize: [42, 42],
+            iconAnchor: [21, 21],
+            popupAnchor: [0, -22],
+        }),
+    });
 
     marker.bindPopup(`
         <b>
-            Station ${station.station_id}
+            Station ${escapeHtml(station.station_id)}
         </b>
 
         <br>
 
         <br>
-        Bottle count: ${count}
+        Total detections: ${count}
         <br>
-        Positive: ${positive}
+        Types: ${types}
         <br>
-        Negative: ${negative}
-        <br>
-        Last update: ${formatTimestamp(bottleCount.timestamp)}
+        Last detection: ${formatTimestamp(summary.timestamp)}
     `, { autoPan: false});
 
     if (onStationSelect) {

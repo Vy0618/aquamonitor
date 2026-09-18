@@ -18,7 +18,7 @@ export const HEATMAP_CONFIG = {
     },
 
     markers: {
-        minZoom: 14
+        minZoom: 0
     },
 
     radius: {
