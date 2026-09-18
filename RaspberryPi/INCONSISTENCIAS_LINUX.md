@@ -101,6 +101,54 @@ Isso significa que `monitor_residuos.py` — e portanto `import cv2`, `import nu
 
 ---
 
+## 9. Diferenças de hardware: câmera USB — Windows vs Linux
+
+**O que acontece:** `camera/webcam_config.py` usa `cv2.VideoCapture(self.device_index)` com `backend: Optional[int] = None`. O OpenCV seleciona automaticamente o backend do sistema, que é **diferente entre Windows e Linux**:
+
+| Aspecto | Windows | Linux (Mint/Debian) |
+|---------|---------|---------------------|
+| Backend padrão | MSMF / DirectShow | V4L2 |
+| Índice do dispositivo | Ordem de enumeração DirectShow | `/dev/video0`, `/dev/video1` (udev) |
+| Permissões | Driver-level, geralmente sem restrições | Usuário precisa estar no grupo `video` |
+| Negotiação de FPS/resolução | Depende do driver DirectShow | Depende do driver V4L2 e do firmware da câmera |
+
+**Problemas específicos:**
+
+1. **Grupo `video` não verificado** — Em Linux, se o usuário não estiver no grupo `video`, `cv2.VideoCapture(0)` abre mas `camera.isOpened()` retorna `False` ou `camera.read()` falha silenciosamente. Não há verificação do grupo no código. No Windows, isso não é um problema.
+
+2. **`device_index` como inteiro não é consistente entre plataformas** — Na mesma máquina, conectar uma câmera USB em outra porta pode mudar o índice de `/dev/video0` para `/dev/video1`. No Windows, a enumeração DirectShow também pode variar. O código não oferece nenhum mecanismo de identificação por caminho (ex: `/dev/video/by-id/`) ou nome serial do dispositivo.
+
+3. **`camera.set()` é uma solicitação, não uma garantia** — O comentário do código diz "A configuração é uma solicitação: o dispositivo pode aceitar valores diferentes". Em Linux com V4L2, algumas câmeras ignoram `CAP_PROP_FRAME_WIDTH/HEIGHT/FPS` e retornam a resolução nativa do sensor ou a resolução mais próxima disponível. O código não verifica se as propriedades foram realmente aplicadas após o `set()`.
+
+4. **GPU/CUDA para YOLO** — `YoloDetector.__init__` tem `device: str | None = None`, que usa CPU. Em Windows com NVIDIA GPU, o usuário poderia passar `"cuda"`. Em Linux, isso requer drivers NVIDIA proprietários instalados e `cuda` toolkit acessível, o que não é garantido em Trixie (que tende a usar drivers open-source `nouveau`).
+
+**Correção sugerida:**
+- Adicionar verificação de grupo `video` no Linux e mensagem informativa se o usuário não pertencer a ele:
+  ```python
+  import os, stat
+  def _check_video_group():
+      if not hasattr(os, 'getgroups'): return
+      gid = os.stat('/dev/video0').st_gid
+      if gid not in os.getgroups():
+          print(f"AVISO: usuário não está no grupo com GID {gid}. Adicione com: sudo usermod -aG video $USER")
+  ```
+- Verificar o retorno de `camera.set()` e, se não aplicado, listar as resoluções suportadas via `cv2.CAP_PROP_FRAME_WIDTH` após abertura.
+- Permitir identificação por caminho do dispositivo (ex: `/dev/video/by-id/usb-...`) além de `device_index`.
+
+---
+
+## 10. Hardware: UART GPS — `/dev/serial0` é específico do Raspberry Pi
+
+*(Expande a seção 2 com detalhes de hardware)*
+
+**O que acontece:** `/dev/serial0` é um symlink criado pelo Raspberry Pi para a UART interna. Em qualquer outro hardware Linux (PC, notebook, Raspberry Pi CM4 com USB-serial), o dispositivo é `/dev/ttyUSB0`, `/dev/ttyACM0`, `/dev/ttyS0` ou outro. O `gps_neo6m.py` e o `raspberrypi_config.json` têm `/dev/serial0` hardcoded.
+
+**Detalhe adicional:** Em PCs Linux modernos com kernel 6.x (Trixie), a serial USB é tipicamente `/dev/ttyACM0` para adaptadores FTDI/CP210x ou `/dev/ttyUSB0` para placas seriais genéricas. O `/dev/serial0` simplesmente não existe fora de um Raspberry Pi.
+
+**Correção:** O `raspberrypi_config.json` deveria usar um caminho configurável com detecção automática ou pelo menos um valor padrão genérico como `/dev/ttyUSB0` com um comentário indicando a plataforma-alvo.
+
+---
+
 ## Tabela resumo
 
 | # | Problema | Severidade | Tipo |
@@ -112,4 +160,6 @@ Isso significa que `monitor_residuos.py` — e portanto `import cv2`, `import nu
 | 5 | Toda documentação em PowerShell | Sem equivalente Linux | Docs |
 | 6 | `_id` como `{"$oid": ...}` | Comportamento inesperado | Código |
 | 7 | SSD importa YOLO desnecessariamente | Falha por dependência | Código |
-| 8 | Sem `.env` loader | Risco de configuração | Código |
+|| 8 | Sem `.env` loader | Risco de configuração | Código |
+|| 9 | Câmera: backend OpenCV diferente, grupo `video`, `device_index` não consistente | **Crash/Falha silenciosa** | Hardware |
+|| 10 | GPS: `/dev/serial0` específico do RPi | **Crash sem GPS** | Hardware |
