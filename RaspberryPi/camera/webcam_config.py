@@ -1,6 +1,7 @@
 """Configurações centralizadas para uma webcam USB genérica."""
 
 from dataclasses import dataclass
+import platform
 from typing import Optional, Tuple
 
 import cv2
@@ -14,7 +15,7 @@ class WebcamConfig:
     width: int = 1280
     height: int = 720
     fps: int = 30
-    # Deixa o OpenCV selecionar o backend correto (V4L2 na Raspberry Pi).
+    # Um backend explícito tem prioridade sobre a seleção automática.
     backend: Optional[int] = None
 
     @property
@@ -22,11 +23,13 @@ class WebcamConfig:
         return self.width, self.height
 
     def open_camera(self) -> cv2.VideoCapture:
-        """Abre a câmera e pede ao driver a resolução e FPS configurados."""
-        if self.backend is None:
-            camera = cv2.VideoCapture(self.device_index)
-        else:
+        """Abre a câmera com V4L2 no Linux e pede resolução e FPS ao driver."""
+        if self.backend is not None:
             camera = cv2.VideoCapture(self.device_index, self.backend)
+        elif platform.system() == "Linux":
+            camera = cv2.VideoCapture(self.device_index, cv2.CAP_V4L2)
+        else:
+            camera = cv2.VideoCapture(self.device_index)
 
         if not camera.isOpened():
             raise RuntimeError(
