@@ -1,0 +1,14 @@
+db.stations.find().forEach(function(station) {
+    var stationId = station.station_id;
+    var count = Math.floor(Math.random() * 200) + 1;
+    for (var i = 0; i < count; i++) {
+        db.detection_events.insertOne({
+            station_id: stationId,
+            detection_type: "bottle",
+            confidence: Math.random(),
+            track_id: i,
+            detected_at: new Date(),
+            event_id: "evt_" + stationId + "_" + i + "_" + (Date.now() + i)
+        });
+    }
+});

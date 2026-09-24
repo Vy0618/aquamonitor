@@ -23,6 +23,7 @@ Monitoramento de estações de coleta com visão computacional — rastreamento 
 - [Frontend — Dashboard](#-frontend--dashboard)
 - [Fluxo de Dados](#-fluxo-de-dados)
 - [Testes Locais](#-testes-locais)
+- [Comandos Úteis](#-comandos-úteis)
 - [Dependências](#-dependências)
 - [Configuração](#-configuração)
 - [Notas Importantes](#-notas-importantes)
@@ -918,7 +919,21 @@ Dashboard modular com ES Modules (`main.js` como orquestrador):
 
 ### Teste de integração HTTP (passo a passo)
 
-#### 1. Preparar o ambiente
+#### 1. Ligar o MongoDB
+
+```bash
+sudo systemctl start mongod
+sudo systemctl status mongod
+```
+
+#### 2. Ligar o uvicorn
+
+```bash
+source .venv/bin/activate
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### 3. Preparar o ambiente
 
 Na raiz do projeto, instale as dependências da parte embarcada:
 
@@ -938,9 +953,9 @@ curl -X POST http://127.0.0.1:8000/api/stations \
 
 > **Problema conhecido:** `station.json` tem `_id` como `{"$oid": "..."}` (MongoDB Extended JSON). O `curl -d @...` envia isso como JSON. O backend pode rejeitar ou aceitar dependendo da versão do pymongo. Se der erro, substitua `_id` por uma string simples no JSON antes de enviar.
 
-#### 2. Validar comunicação HTTP
+#### 4. Validar comunicação HTTP
 
-Envie uma detecção simulada:
+Envie uma detecção simulado:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/detections \
@@ -965,7 +980,7 @@ A resposta deve mostrar `"total": 1` (ou maior) e `"by_type"` contendo `"can"`.
 
 > **Se `uuidgen` não existir**, use: `"event_id": "test-$(date +%s)"`.
 
-#### 3. Testar o dashboard
+#### 5. Testar o dashboard
 
 Em outro terminal:
 
@@ -978,7 +993,7 @@ Abra `http://127.0.0.1:3000`. A estação deve exibir o total de detecções, as
 
 > Se o `python` do sistema apontar para Python 3.12 sem os pacotes necessários, use `.venv/bin/python -m http.server 3000`.
 
-#### 4. Executar o monitor com webcam local
+#### 6. Executar o monitor com webcam local
 
 Mantenha `backend.base_url` como `http://127.0.0.1:8000`.
 
@@ -1006,9 +1021,9 @@ python -c "import cv2; c = cv2.VideoCapture(0); print('Aberta:', c.isOpened()); 
 
 Pressione `Q` ou `Esc` para encerrar. Cada objeto que cruzar a linha amarela gera um evento em `POST /api/detections`; o dashboard deve refletir a alteração no próximo ciclo de polling.
 
-#### 5. Teste ponta a ponta
+#### 7. Teste ponta a ponta
 
-1. Inicie MongoDB, backend e dashboard.
+1. Inicie MongoDB, backend e dashboard (passos 1-2).
 2. Verifique `GET /api/stations`.
 3. Rode o monitor com a câmera.
 4. Faça um objeto de classe reconhecida cruzar a linha amarela.
@@ -1043,6 +1058,33 @@ Os testes cobrem ingestão de tipos gerais, estação inexistente, duplicação 
 - O SSD MobileNet COCO fornecido reconhece `bottle`; as demais classes dependem do modelo utilizado. O YOLO pode reconhecer as cinco categorias configuradas.
 - Ao migrar para a Raspberry Pi física, troque `backend.base_url` pelo IP ou hostname do computador/servidor que executa o FastAPI. `127.0.0.1` na Pi aponta para a própria Pi.
 - Um mesmo `event_id` não pode ser enviado duas vezes: a segunda tentativa retorna HTTP 409 para evitar contagem duplicada.
+
+---
+
+## ⚡ Comandos Úteis
+
+### Simular detecções nas 60 estações
+
+Para popular a coleção `detection_events` com um número aleatório de detecções (1-200) por estação, execute no `mongosh`:
+
+```javascript
+db.stations.find().forEach(function(station) {
+    var stationId = station.station_id;
+    var count = Math.floor(Math.random() * 200) + 1;
+    for (var i = 0; i < count; i++) {
+        db.detection_events.insertOne({
+            station_id: stationId,
+            detection_type: "bottle",
+            confidence: Math.random(),
+            track_id: i,
+            detected_at: new Date(),
+            event_id: "evt_" + stationId + "_" + i + "_" + (Date.now() + i)
+        });
+    }
+});
+```
+
+> **Nota:** Este comando insere documentos na coleção `detection_events`, que é a fonte de dados do dashboard. Não atualize o campo `detections` na coleção `stations` diretamente — o backend ignora esse campo.
 
 ---
 
