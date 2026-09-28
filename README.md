@@ -98,7 +98,7 @@ flowchart LR
     Event -->|POST /api/detections| API[FastAPI :8000]
     API --> Mongo[(MongoDB aquamonitor)]
     Mongo --> API
-    API -->|GET /api/stations\nGET /api/stations/{id}/detections| Dashboard[Dashboard :3000]
+    API -->|GET /api/stations → GET /api/stations/id/detections| Dashboard[Dashboard :3000]
 ```
 
 ### Fluxo detalhado
