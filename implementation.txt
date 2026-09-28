@@ -1,0 +1,108 @@
+## Plan: Implement ByteTrack Bottle Counting for Line Crossing
+
+**TL;DR**: Create a **composable, reusable tracking pipeline** following Unix philosophy: separate modular components (detector, tracker, line-crossing counter) that each do one thing well and can be used independently. Integrate with existing detection pipeline to count unique bottles crossing a hard-coded line, then send periodic aggregate counts to backend. Architecture: *Any detector* → ByteTrack → Line Crossing Counter → Backend.
+
+### **Steps** (grouped into 5 phases, with ~18 total steps)
+
+**Phase 1: Core Library Layer** — Build independent, reusable modules (no dependencies on project specifics)
+1. Install ByteTrack dependencies (yolov8, lap, cython-bbox)
+2. Create `tracker.py` — Generic ByteTrack wrapper (works with any detector)
+3. Create `geometry.py` — Pure math functions for line crossing (no state)
+4. Create `line_counter.py` — Stateful counter for tracking object crossings
+5. Create `config.py` — Single source of truth for line coordinates & thresholds
+
+**Phase 2: Integration Layer** — Glue together modules with existing detection pipeline
+6. Refactor `object-ident.py` to output structured detection format
+7. Create `detection_pipeline.py` — Orchestrates detector → tracker → counter → API
+8. Create `api_client.py` — HTTP client for posting counts (isolated from detection logic)
+9. Integrate pipeline into `object-ident.py` main loop
+
+**Phase 3: Backend** — Ingest and store bottle counts
+10. Add `POST /api/stations/{station_id}/bottle-count` endpoint
+11. Update MongoDB schema: add `bottle_metrics` field
+12. Add `GET /api/stations/{station_id}/bottle-count` retrieval endpoint
+
+**Phase 4: Frontend** — Display real-time counts
+13. Add bottle count widget to `index.html`
+14. Create dashboard/js/bottle-counter.js (polls every 3s)
+15. Wire counter into `main.js`
+
+**Phase 5: Testing** — Validation across all layers
+16. Unit test modular components (geometry, line_counter, tracker)
+17. Integration test on Raspberry Pi (full pipeline with live camera)
+18. End-to-end test (camera → detection → tracking → backend → dashboard)
+
+---
+
+### **Relevant Files**
+
+**Core Modular Libraries** (Reusable, Unix-style):
+- `backend/detection/tracker.py` — ByteTrack wrapper (detector-agnostic)
+- `backend/detection/geometry.py` — Pure functions for line crossing math
+- `backend/detection/line_counter.py` — Stateful counter for tracked objects
+- `backend/detection/config.py` — Centralized configuration
+
+**Integration Layer** (Glue code):
+- `backend/detection/api_client.py` — HTTP client for backend communication
+- `backend/detection/detection_pipeline.py` — Orchestrates entire pipeline
+- `object-ident.py` — Modified to use pipeline
+
+**Backend** (API + Database):
+- `app.py` — New routes for bottle count ingestion/retrieval
+- `test_mongodb.py` — Tests for schema
+
+**Frontend** (Dashboard):
+- dashboard/js/bottle-counter.js — NEW module for polling & display
+- `index.html`, `style.css` — UI updates
+- `main.js` — Wire counter init
+
+**Dependencies**:
+- `requirements.txt` — Add: `yolov8`, `lap`, `cython-bbox`
+
+---
+
+### **Verification Checklist**
+
+**Unit tests** (no hardware needed):
+- `geometry.py`: Line crossing with synthetic centroids (normal case, edge cases, skip-over)
+- `line_counter.py`: State management (same object counted once, multiple objects independent)
+- `tracker.py`: Track ID persistence across frames
+
+**Integration test** (Raspberry Pi):
+- Full pipeline with live camera; count manual bottle passes, verify match ±1
+- Performance: ≥15 FPS with SSD MobileNet + ByteTrack
+
+**End-to-end** (full system):
+- Dashboard updates within 3–5 seconds of bottle crossing
+- Count persists across detection pipeline restarts
+
+---
+
+### **Unix Philosophy Design Decisions**
+
+| Principle | Implementation |
+|-----------|-----------------|
+| **Single Responsibility** | Each module does ONE job: tracker only tracks, geometry only computes math, counter only counts |
+| **Composability** | Tracker works with ANY detector; line counter works with ANY tracker; modules are independently testable |
+| **Configuration over hardcoding** | Line coordinates in `config.py`, not scattered; easy to extend to JSON later |
+| **Edge/Backend separation** | Pi processes locally (fast), backend only stores aggregates (simple schema) |
+| **Reusability** | Design works for any object class (not just bottles) by changing `CLASSES_TO_COUNT` |
+
+**Alternative approaches deliberately NOT chosen**:
+- DeepSort: Too slow for Raspberry Pi (3x overhead)
+- Event-based storage: You want aggregates, not per-frame logs
+- WebSockets: HTTP polling sufficient for your 3–5s granularity
+
+---
+
+### **Further Considerations**
+
+1. **Multi-class extensibility**: Want to count different objects on different lines? Create multiple `LineCounter` instances—architecture supports this from the start.
+
+2. **Performance tuning**: If FPS drops below 15 on Pi, implement optional frame skipping (process every Nth frame for detection, but run all frames through tracker for smooth motion).
+
+3. **Duplicate prevention edge case**: If tracker briefly loses track ID and regains it on same object, could double-count. **Mitigation**: Add temporal gap check—treat reappearance within N seconds at same location as continuation.
+
+---
+
+**Ready to proceed?** I can start implementation with the modules, or do you have questions/adjustments to the plan?

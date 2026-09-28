@@ -98,7 +98,7 @@ flowchart LR
     Event -->|POST /api/detections| API[FastAPI :8000]
     API --> Mongo[(MongoDB aquamonitor)]
     Mongo --> API
-    API -->|GET /api/stations<br>GET /api/stations/{id}/detections| Dashboard[Dashboard :3000]
+    API -->|GET /api/stations\nGET /api/stations/{id}/detections| Dashboard[Dashboard :3000]
 ```
 
 ### Fluxo detalhado
@@ -1058,6 +1058,288 @@ Os testes cobrem ingestão de tipos gerais, estação inexistente, duplicação 
 - O SSD MobileNet COCO fornecido reconhece `bottle`; as demais classes dependem do modelo utilizado. O YOLO pode reconhecer as cinco categorias configuradas.
 - Ao migrar para a Raspberry Pi física, troque `backend.base_url` pelo IP ou hostname do computador/servidor que executa o FastAPI. `127.0.0.1` na Pi aponta para a própria Pi.
 - Um mesmo `event_id` não pode ser enviado duas vezes: a segunda tentativa retorna HTTP 409 para evitar contagem duplicada.
+
+---
+
+## 🖥️ Setup Integrado — Raspberry Pi + Computador Backend
+
+Este tutorial ensina como conectar uma Raspberry Pi (estação embarcada com câmera) a um computador que executa o backend FastAPI + MongoDB + Dashboard. A comunicação é unidirecional: a Pi envia eventos de detecção via HTTP POST, e o computador backend serve os dados ao dashboard.
+
+### Arquitetura da comunicação
+
+```
+Raspberry Pi (câmera + YOLOv8)
+  │
+  │ HTTP POST /api/detections
+  │ (evento por cruzamento detectado)
+  ▼
+Computador Backend (FastAPI :8000)
+  │
+  │ salva em
+  ▼
+MongoDB (aquamonitor)
+  │
+  │ GET /api/stations, GET /api/stations/{id}/detections
+  │ polling 3s
+  ▼
+Dashboard Leaflet (:3000)
+```
+
+### O que a Raspberry Pi precisa
+
+- Python 3.12+
+- Dependências do componente embarcado (`ultralytics`, `opencv-python`, `requests`, `pyserial`)
+- Pesos do modelo YOLOv8 (`models/best (1).pt`)
+- Acesso à câmera USB ou CSI
+- **Não precisa** de FastAPI, MongoDB, Node.js nem Leaflet
+
+### O que o computador backend precisa
+
+- MongoDB 6+ rodando na porta 27017
+- Backend FastAPI rodando na porta 8000
+- (Opcional) Dashboard servindo na porta 3000
+
+---
+
+### Passo 1 — Preparar o computador backend
+
+No computador que vai servir como backend, clone o repositório e configure o ambiente:
+
+```bash
+git clone https://github.com/Vy0618/aquamonitor.git
+cd aquamonitor
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Inicie o MongoDB:
+
+```bash
+sudo systemctl start mongod
+sudo systemctl enable mongod
+```
+
+Importe as estações de exemplo:
+
+```bash
+mongoimport --db aquamonitor --collection stations --file stations.json --jsonArray
+```
+
+Inicie o backend:
+
+```bash
+source .venv/bin/activate
+uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+> **`--host 0.0.0.0`** é essencial — faz o FastAPI escutar em todas as interfaces de rede, permitindo que a Raspberry Pi se conecte pela rede local.
+
+Verifique se o backend responde:
+
+```bash
+curl http://127.0.0.1:8000/api/stations
+```
+
+Deve retornar uma lista JSON de estações (possivelmente vazia se nenhuma foi importada).
+
+---
+
+### Passo 2 — Descobrir o IP do computador backend
+
+No computador backend, descubra o endereço IP na rede local:
+
+```bash
+hostname -I
+# ou
+ip addr show | grep "inet "
+```
+
+Anote o IP (exemplo: `192.168.1.100`). A Raspberry Pi vai precisar dele para se conectar ao backend.
+
+> Se estiver em uma rede diferente (Wi-Fi do hotel, VPN, etc.), use o IP que a Pi conseguirá alcançar. Em uma rede LAN doméstica, o IP local normalmente funciona diretamente.
+
+---
+
+### Passo 3 — Preparar a Raspberry Pi
+
+Na Raspberry Pi, clone o repositório e configure o ambiente Python embarcado:
+
+```bash
+git clone https://github.com/Vy0618/aquamonitor.git
+cd aquamonitor
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r RaspberryPi/config/requirements.txt
+```
+
+Verifique se os arquivos de modelo existem:
+
+```bash
+test -f RaspberryPi/models/best\ \(1\).pt && echo "YOLO model OK" || echo "FALTANDO MODEL!"
+ls RaspberryPi/models/
+```
+
+Teste a câmera:
+
+```bash
+python -c "import cv2; c = cv2.VideoCapture(0); print('Aberta:', c.isOpened()); c.release()"
+```
+
+Se a câmera não abrir, verifique o `device_index` em `RaspberryPi/config/raspberrypi_config.json` e garanta que o usuário está no grupo `video`:
+
+```bash
+sudo usermod -aG video $USER
+```
+
+> Após adicionar ao grupo `video`, faça logout e login novamente (ou reinicie).
+
+---
+
+### Passo 4 — Configurar a conexão da Pi com o backend
+
+Edite o arquivo `RaspberryPi/config/raspberrypi_config.json` na Raspberry Pi para apontar para o IP do computador backend:
+
+```json
+{
+  "backend": {
+    "base_url": "http://192.168.1.100:8000",
+    "detections_path": "/api/detections",
+    "timeout_seconds": 5,
+    "require_connection_on_startup": true
+  },
+  "station_id": 1,
+  ...
+}
+```
+
+Substitua `192.168.1.100` pelo IP real do computador backend obtido no **Passo 2**.
+
+> **Alternativa com variável de ambiente:** Você também pode sobrescrever `base_url` sem editar o JSON, exportando `AQUADETECTOR_API_URL`:
+> ```bash
+> export AQUADETECTOR_API_URL="http://192.168.1.100:8000"
+> ```
+> O `BackendClient` prioriza a variável de ambiente sobre o valor do JSON.
+
+---
+
+### Passo 5 — Cadastrar a estação no backend
+
+A Raspberry Pi precisa que a estação exista no MongoDB **antes** de começar a enviar detecções. O monitor vai chamar `ensure_station_is_available()` no startup e falhar se a estação não existir.
+
+No computador backend, cadastre a estação:
+
+```bash
+curl -X POST http://192.168.1.100:8000/api/stations \
+  -H "Content-Type: application/json" \
+  -d '{"station_id":1,"detections":0,"location":{"type":"Point","coordinates":[-46.4526,-23.5015]},"administrative":{"country":"Brazil","state":"São Paulo","city":"Santos","district":"Baía de Santos"}}'
+```
+
+Verifique se a estação foi criada:
+
+```bash
+curl http://192.168.1.100:8000/api/stations
+```
+
+> **⚠️** `station.json` tem `_id` no formato MongoDB Extended JSON (`{"$oid": "..."}`). Se o `curl -d @RaspberryPi/station/station.json` falhar, substitua o `_id` por uma string simples ou use o comando acima diretamente.
+
+---
+
+### Passo 6 — Iniciar o monitor na Raspberry Pi
+
+Com a câmera conectada e a configuração apontando para o backend, execute o monitor YOLOv8:
+
+```bash
+source .venv/bin/activate
+python -m RaspberryPi.monitoring.monitor_residuos
+```
+
+Você deve ver no terminal:
+
+```
+Backend conectado; estação 1 validada.
+Monitor iniciado. Pressione Q ou ESC para encerrar.
+```
+
+Se a estação não estiver cadastrada, receberá um erro de conexão. Verifique o **Passo 5**.
+
+Quando um objeto cruzar a linha de contagem (55% da altura do frame), o terminal mostrará:
+
+```
+Enviado: bottle (track #3)
+```
+
+e o evento será enviado via HTTP POST para o backend.
+
+> Para monitor SSD MobileNet (sem YOLOv8): `python -m RaspberryPi.monitoring.monitor_ssd_mobilenet`. Requer os arquivos `.pb` e `.pbtxt` além de `pyserial` para GPS.
+
+---
+
+### Passo 7 — Verificar no dashboard
+
+No computador backend (ou em qualquer navegador na mesma rede), abra o dashboard:
+
+```bash
+cd /home/vyzxc/aquamonitor/dashboard
+python -m http.server 3000
+```
+
+Acesse `http://127.0.0.1:3000` (no próprio computador) ou `http://<IP_DO_BACKEND>:3000` (de outro dispositivo na rede).
+
+O dashboard faz polling a cada 3 segundos. Ao selecionar a estação `S1` no mapa, verá o total de detecções, as categorias e o horário da última detecção atualizando em tempo real conforme a Raspberry Pi envia eventos.
+
+---
+
+### Passo 8 — Verificar a comunicação
+
+Para confirmar que os dados estão chegando ao backend, consulte os eventos de detecção:
+
+```bash
+curl http://127.0.0.1:8000/api/stations/1/detections
+```
+
+Deve retornar:
+
+```json
+{
+  "station_id": 1,
+  "total": <N>,
+  "by_type": {"bottle": <n>, "can": <n>, ...},
+  "timestamp": "2026-09-28T12:00:00+00:00"
+}
+```
+
+Para ver as estações cadastradas com suas estatísticas:
+
+```bash
+curl http://127.0.0.1:8000/api/stations
+```
+
+---
+
+### Solução de problemas
+
+| Problema | Causa provável | Solução |
+|----------|---------------|---------|
+| `Connection refused` na Pi | Backend não está ouvindo em `0.0.0.0` ou firewall bloqueia | No backend: verifique `uvicorn --host 0.0.0.0`; libere porta 8000 |
+| `Estação station_id=X não existe` | Station não cadastrada no MongoDB | Cadastre com `POST /api/stations` antes de iniciar o monitor |
+| Câmera não abre | Usuário não no grupo `video` ou `device_index` errado | `sudo usermod -aG video $USER`; ajuste `device_index` no JSON |
+| Modelo não encontrado | `best (1).pt` não existe em `RaspberryPi/models/` | Verifique com `ls RaspberryPi/models/` |
+| `SEU_IP_DO_BACKEND` no erro | `AQUADETECTOR_API_URL` ou `base_url` não foi alterado | Atualize o IP no JSON ou exporte a variável de ambiente |
+| Sem dados no dashboard | Polling de 3s pode não ter atingido o backend ainda | Aguarde 3s ou recarregue a página |
+| Latência alta na rede | Wi-Fi instável ou distância do roteador | Use cabo Ethernet se possível |
+
+### Notas de rede
+
+- A Raspberry Pi precisa alcançar o computador backend na **porta 8000** (TCP)
+- O backend conversa com o MongoDB localmente — não precisa expor o MongoDB para a rede
+- Em redes diferentes (Pi via Wi-Fi, backend via cabo), garanta que ambos estão na mesma sub-rede ou configure roteamento
+- Se o backend usar firewall (ufw), libere a porta:
+  ```bash
+  sudo ufw allow 8000/tcp
+  ```
 
 ---
 
