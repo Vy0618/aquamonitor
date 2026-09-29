@@ -22,7 +22,7 @@
     }
   },
   "backend": {
-    "base_url": "http://127.0.0.1:8000",
+    "base_url": "http://10.237.188.215:8000",
     "detections_path": "/api/detections",
     "timeout_seconds": 5,
     "require_connection_on_startup": true
