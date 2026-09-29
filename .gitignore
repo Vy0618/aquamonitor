@@ -1,53 +1,43 @@
-# Python
+# Python e ambientes virtuais
 __pycache__/
 *.py[cod]
 *.egg-info/
-.pytest_cache/
-
-# Virtual environment
 .venv/
 venv/
 env/
-
-# Model weights and detection outputs (large files)
-best.pt
-runs/
-
-# Ultralytics environment
 ultralytics-env/
+build/
+dist/
 
-# Temporary files
+# Testes e cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Configuração local (exemplos podem ser versionados)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Dados gerados, banco local e saídas de detecção
+data/
+runs/
+*.log
+best.pt
+
+# Arquivos temporários
 tmp/
 *.tmp
 *.swp
 *.swo
 *~
 
-# Environment variables / secrets
-.env
-.env.*
-
-# IDE
+# Editor e sistema operacional
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# MongoDB local database files
-data/
-
-# Images (not part of codebase)
-*.jpg
-*.jpeg
-*.png
-
-
-# Test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
+# Modelos SSD e imagens de documentação/teste são versionáveis.

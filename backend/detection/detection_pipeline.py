@@ -10,6 +10,7 @@ from .api_client import BottleCountApiClient
 from .config import API, COUNTING_LINE, ApiConfig, CountingLineConfig
 from .line_counter import CrossingEvent, LineCounter, TrackedObject
 from .tracker import ByteTrackTracker, Detection
+from .publisher import BackgroundPublisher
 
 
 @dataclass(frozen=True)
@@ -41,21 +42,29 @@ class DetectionPipeline:
         self._publish_interval = api_config.publish_interval_seconds
         self._clock = clock
         self._last_publish_at = clock()
+        self.publisher = BackgroundPublisher(self.api_client)
 
     def process(self, detections: Iterable[Detection]) -> PipelineResult:
         """Track one detector frame, count crossings, and publish periodically."""
         tracks = self.tracker.update(detections)
         events = self.counter.update(tracks)
+        confidence_by_id = {track.track_id: track.confidence for track in tracks}
+        for event in events:
+            self.api_client.enqueue(event, confidence_by_id[event.track_id])
         self.publish_if_due()
         return PipelineResult(tracks, events, self.counter.count)
 
     def publish_if_due(self, *, force: bool = False) -> bool:
-        """Publish aggregates at the configured interval, or immediately if forced."""
+        """Schedule HTTP work without waiting; True means scheduled, not delivered."""
         now = self._clock()
         if not force and now - self._last_publish_at < self._publish_interval:
             return False
-        published = self.api_client.publish(self.counter.count, self.counter.count_by_direction)
+        published = self.publisher.request()
         # Advance the schedule even after a network error to avoid log/request
-        # storms when the Phase 3 service is unavailable.
+        # storms when the API is unavailable.
         self._last_publish_at = now
         return published
+
+    def close(self, timeout: float = 5.0) -> bool:
+        """Stop producing events before calling this bounded shutdown."""
+        return self.publisher.close(timeout)

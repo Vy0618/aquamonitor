@@ -112,7 +112,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--detection-interval", type=float, default=0.25)
     parser.add_argument("--confidence", type=float, default=0.45)
     parser.add_argument("--nms", type=float, default=0.2)
-    parser.add_argument("--publish", action="store_true", help="Publish aggregates to the Phase 3 API")
+    parser.add_argument("--publish", action="store_true", help="Publish crossing events to /api/detections")
     return parser.parse_args()
 
 
@@ -130,6 +130,8 @@ def main() -> None:
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     if not camera.isOpened():
+        camera.release()
+        pipeline.close()
         raise RuntimeError(f"Could not open camera index {args.camera}")
 
     latest_result = PipelineResult([], [], 0)
@@ -157,9 +159,9 @@ def main() -> None:
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:
-        pipeline.publish_if_due(force=True)
         camera.release()
         cv2.destroyAllWindows()
+        pipeline.close()
 
 
 if __name__ == "__main__":

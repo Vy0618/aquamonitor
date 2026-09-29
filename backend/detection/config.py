@@ -32,15 +32,15 @@ class ByteTrackConfig:
 
 @dataclass(frozen=True)
 class ApiConfig:
-    """Destination for aggregate counts (implemented by the Phase 3 API)."""
+    """Destination for crossing events sent to /api/detections."""
 
     base_url: str = os.getenv("BOTTLE_COUNT_API_URL", "http://127.0.0.1:8000")
     station_id: int = int(os.getenv("BOTTLE_COUNT_STATION_ID", "1"))
     publish_interval_seconds: float = float(
         os.getenv("BOTTLE_COUNT_PUBLISH_INTERVAL", "5")
     )
-    # Phase 3 adds the receiving endpoint. Keep local camera testing quiet until
-    # then; set BOTTLE_COUNT_API_ENABLED=1 to enable publishing.
+    # Local camera testing is offline by default; enable with --publish or
+    # BOTTLE_COUNT_API_ENABLED=1.
     enabled: bool = os.getenv("BOTTLE_COUNT_API_ENABLED", "0") == "1"
 
 

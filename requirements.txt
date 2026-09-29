@@ -1,10 +1,20 @@
-fastapi>=0.141.0
-uvicorn>=0.52.0
-pydantic>=2.0.0
-pymongo
-opencv-python
-supervision==0.27.0
-lap==0.5.12
-cython-bbox==0.1.5
+# Protótipo completo: API, detecção SSD/ByteTrack e testes.
+# Usar Python 3.11 ou 3.12. Não inclui YOLO, GPS ou CUDA.
+
+# API e armazenamento no computador
+fastapi>=0.141.0,<0.142
+uvicorn>=0.52.0,<0.55
+pydantic>=2.0,<3
+pymongo>=4.0,<5
+
+# Câmera, inferência SSD e rastreamento
+# Par de versões presente no ambiente de desenvolvimento.
 numpy==1.26.4
-requests
+opencv-python==4.11.0.86
+supervision==0.27.0
+
+# Publicação HTTP
+requests>=2.31,<3
+
+# TestClient usado pelos testes da API
+httpx==0.28.1
