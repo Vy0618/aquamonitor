@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 import cv2
+import numpy as np
 
 # Keep direct execution working even though this historical filename contains a
 # hyphen and therefore cannot be run with ``python -m``.
@@ -59,8 +60,10 @@ class OpenCVDnnDetector:
             nmsThreshold=nms_threshold,
         )
         detections: list[Detection] = []
+        if class_ids is None:
+            return detections
         for class_id, confidence, (x, y, width, height) in zip(
-            class_ids.flatten(), confidences.flatten(), boxes
+            np.asarray(class_ids).reshape(-1), np.asarray(confidences).reshape(-1), boxes
         ):
             class_name = self.class_names[int(class_id) - 1]
             if classes is not None and class_name not in classes:
@@ -113,6 +116,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--confidence", type=float, default=0.45)
     parser.add_argument("--nms", type=float, default=0.2)
     parser.add_argument("--publish", action="store_true", help="Publish crossing events to /api/detections")
+    parser.add_argument("--no-display", action="store_true", help="Run without a GUI; stop with Ctrl+C")
     return parser.parse_args()
 
 
@@ -154,14 +158,20 @@ def main() -> None:
             else:
                 pipeline.publish_if_due()
 
-            draw_overlay(image, latest_result)
-            cv2.imshow("AquaMonitor Bottle Counter", image)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+            if not args.no_display:
+                draw_overlay(image, latest_result)
+                cv2.imshow("AquaMonitor Bottle Counter", image)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
+    except KeyboardInterrupt:
+        pass
     finally:
         camera.release()
-        cv2.destroyAllWindows()
-        pipeline.close()
+        try:
+            if not args.no_display:
+                cv2.destroyAllWindows()
+        finally:
+            pipeline.close()
 
 
 if __name__ == "__main__":

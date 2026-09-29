@@ -33,7 +33,7 @@ Não há fila SQLite. A contagem ocorre no cruzamento, não a cada frame detecta
 ### 1. Preparar Python e dependências
 
 Execute os comandos na raiz do repositório. Use Python **3.11 ou 3.12** e uma
-câmera USB reconhecida pelo OpenCV. O runner atual exige sessão gráfica.
+câmera USB reconhecida pelo OpenCV. Use `--no-display` para executar sem sessão gráfica.
 
 Em Debian/Ubuntu ou Raspberry Pi OS com esses pacotes disponíveis:
 
@@ -62,7 +62,7 @@ Os três arquivos SSD devem estar em `backend/detection/models/`:
 Não exigem câmera nem uma instância MongoDB; as operações da API são simuladas.
 
 ```bash
-python -m unittest backend.test_detection_events backend.test_detection_publishing backend.test_background_publisher backend.test_station_document -v
+python -m unittest backend.test_detection_events backend.test_detection_publishing backend.test_background_publisher backend.test_station_document backend.test_camera_runner -v
 ```
 
 Não use descoberta indiscriminada: `backend/test_mongodb.py` é um utilitário que
@@ -165,12 +165,12 @@ aberto no próprio servidor.
 1. Use um sistema de 64 bits e Python 3.11/3.12 como base para este setup.
 2. Copie ou clone o repositório, incluindo os arquivos do modelo SSD.
 3. Crie o ambiente virtual e instale `requirements.txt` conforme o setup local.
-4. Conecte a câmera USB e execute o runner em uma sessão gráfica da Pi.
+4. Conecte a câmera USB; use `--no-display` se estiver executando por SSH.
 
 A instalação e o desempenho em ARM precisam ser verificados no equipamento;
 este guia não representa uma validação física da Raspberry Pi.
 O runner usa `cv2.VideoCapture`: câmeras CSI/Picamera2 não têm integração específica.
-Não use `opencv-python-headless` com o runner atual, que chama `imshow()`.
+O modo padrão abre uma janela OpenCV. `--no-display` desativa as chamadas gráficas.
 
 Antes da câmera, verifique a comunicação:
 
@@ -189,8 +189,8 @@ python backend/detection/object-ident.py --camera 0 --width 640 --height 480 --p
 ```
 
 A Pi executa apenas a detecção e o envio; não precisa iniciar MongoDB, FastAPI
-ou dashboard. Um terminal SSH sem acesso à sessão gráfica não basta para o
-runner atual. Não há opção de execução sem janela implementada.
+ou dashboard. Em SSH ou se houver erro de plugin Qt/Wayland, acrescente `--no-display` ao
+comando. Nesse modo, encerre com Ctrl+C.
 
 Para validar, anote o total inicial no servidor, passe uma quantidade conhecida
 de garrafas pela linha e compare o aumento da contagem após a publicação.

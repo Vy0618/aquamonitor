@@ -35,6 +35,7 @@ tmp/
 *~
 
 # Editor e sistema operacional
+AGENTS.md
 .vscode/
 .idea/
 .DS_Store
