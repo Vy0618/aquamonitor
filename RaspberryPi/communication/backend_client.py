@@ -35,7 +35,7 @@ class BackendClient:
             stations = response.json()
         except (requests.RequestException, ValueError) as error:
             raise RuntimeError(f"Não foi possível conectar ao backend em {self.config.base_url}: {error}") from error
-        if not isinstance(stations, list) or not any(s.get("station_id") == station_id for s in stations):
+        if not isinstance(stations, list) or not any(isinstance(s, dict) and s.get("station_id") == station_id for s in stations):
             raise RuntimeError(f"A estação station_id={station_id} não existe no backend.")
 
     def send_detection(self, event: dict[str, Any]) -> None:
@@ -44,3 +44,6 @@ class BackendClient:
             response.raise_for_status()
         except requests.RequestException as error:
             raise RuntimeError(f"Falha ao enviar detecção ao backend: {error}") from error
+
+    def close(self) -> None:
+        self.session.close()

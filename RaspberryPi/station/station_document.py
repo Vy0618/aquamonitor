@@ -6,9 +6,6 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from RaspberryPi.gps.gps_neo6m import GpsFix
-
-
 class StationDocument:
     def __init__(self, path: Path, station_id: int, settings: dict[str, Any]) -> None:
         self.path = path
@@ -22,13 +19,11 @@ class StationDocument:
         self._write(document)
         return document
 
-    def update(self, detections: Optional[int] = None, gps_fix: Optional[GpsFix] = None, status: Optional[str] = None) -> dict[str, Any]:
+    def update(self, detections: Optional[int] = None, status: Optional[str] = None) -> dict[str, Any]:
         document = self.ensure_exists()
         if detections is not None:
             # O contador inicial configurado nunca é reduzido por um arquivo local antigo.
             document["detections"] = max(int(document.get("detections", 0)), detections)
-        if gps_fix is not None:
-            document["location"] = {"type": "Point", "coordinates": gps_fix.geojson_coordinates}
         if status is not None:
             document["status"] = status
         self._validate(document)
@@ -56,6 +51,7 @@ class StationDocument:
         return document
 
     def _write(self, document: dict[str, Any]) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(".tmp")
         temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
         temporary.replace(self.path)
@@ -63,7 +59,7 @@ class StationDocument:
     @staticmethod
     def _validate(document: dict[str, Any]) -> None:
         required = {"_id", "station_id", "detections", "status", "location", "administrative"}
-        if set(document) != required:
+        if not isinstance(document, dict) or set(document) != required:
             raise RuntimeError("station.json deve conter exatamente os campos do documento da estação.")
         location = document["location"]
         coordinates = location.get("coordinates") if isinstance(location, dict) else None

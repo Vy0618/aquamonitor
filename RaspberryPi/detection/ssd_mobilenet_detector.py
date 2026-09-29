@@ -13,9 +13,6 @@ from RaspberryPi.detection.yolo_detector import Detection
 
 # IDs COCO do SSD MobileNet. Para reconhecer as cinco classes do projeto, use
 # um modelo treinado com elas e informe labels.txt com linhas "id nome".
-DEFAULT_COCO_LABELS = {44: "bottle"}
-
-
 class SsdMobileNetDetector:
     def __init__(
         self,
@@ -43,8 +40,6 @@ class SsdMobileNetDetector:
 
     @staticmethod
     def _load_labels(path: Path) -> dict[int, str]:
-        if not path.is_file():
-            return DEFAULT_COCO_LABELS.copy()
         labels: dict[int, str] = {}
         for index, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             line = raw_line.strip()

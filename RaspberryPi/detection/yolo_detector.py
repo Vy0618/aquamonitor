@@ -27,14 +27,14 @@ class YoloDetector:
         self,
         model_path: str | Path = Path(__file__).resolve().parents[1] / "models" / "best (1).pt",
         confidence_threshold: float = 0.45,
-        image_size: int = 640,
-        device: str | None = None,
+        image_size: int = 320,
+        device: str | None = "cpu",
         allowed_classes: tuple[str, ...] = EXPECTED_CLASSES,
     ) -> None:
         try:
             from ultralytics import YOLO
         except ImportError as error:
-            raise RuntimeError("Instale as dependências: pip install -r requirements.txt") from error
+            raise RuntimeError("Instale: python -m pip install -r RaspberryPi/config/requirements.txt") from error
 
         model_file = Path(model_path)
         if not model_file.is_file():

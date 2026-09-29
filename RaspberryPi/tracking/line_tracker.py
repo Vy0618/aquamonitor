@@ -1,6 +1,6 @@
 """Rastreador leve por centróide e evento de cruzamento de linha."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from RaspberryPi.detection.yolo_detector import Detection
@@ -23,6 +23,7 @@ class TrackedObject:
 class Crossing:
     track_id: int
     class_name: str
+    confidence: float
 
 
 class LineTracker:
@@ -30,7 +31,7 @@ class LineTracker:
         self,
         line_y: int,
         max_distance: int = 90,
-        max_missing_frames: int = 20,
+        max_missing_frames: int = 4,
         direction: str = "both",  # "down", "up" ou "both"
     ) -> None:
         if direction not in {"down", "up", "both"}:
@@ -73,7 +74,7 @@ class LineTracker:
             tracked.missing_frames = 0
             if not tracked.counted and self._crossed_line(tracked):
                 tracked.counted = True
-                crossings.append(Crossing(track_id, tracked.class_name))
+                crossings.append(Crossing(track_id, tracked.class_name, pending[det_index].confidence))
 
         for track_id in unmatched_tracks:
             self.objects[track_id].missing_frames += 1

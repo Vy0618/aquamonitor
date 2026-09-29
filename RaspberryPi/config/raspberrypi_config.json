@@ -2,12 +2,17 @@
   "station_id": 1,
   "station_document": {
     "path": "station/station.json",
-    "_id": { "$oid": "68c5d6c0a4e71b2f8d000001" },
+    "_id": {
+      "$oid": "68c5d6c0a4e71b2f8d000001"
+    },
     "detections": 37,
     "status": "online",
     "location": {
       "type": "Point",
-      "coordinates": [-46.4526, -23.5015]
+      "coordinates": [
+        -46.4526,
+        -23.5015
+      ]
     },
     "administrative": {
       "country": "Brazil",
@@ -16,24 +21,29 @@
       "district": "Baía de Santos"
     }
   },
-  "gps": {
-    "enabled": true,
-    "serial_port": "/dev/serial0",
-    "baudrate": 9600,
-    "read_timeout_seconds": 1.0
-  },
   "backend": {
     "base_url": "http://127.0.0.1:8000",
     "detections_path": "/api/detections",
     "timeout_seconds": 5,
     "require_connection_on_startup": true
   },
-  "camera": { "device_index": 0, "width": 1280, "height": 720, "fps": 30 },
+  "camera": {
+    "device_index": 0,
+    "width": 640,
+    "height": 480,
+    "fps": 15
+  },
   "detection": {
     "model_path": "models/best (1).pt",
     "confidence_threshold": 0.45,
-    "image_size": 640,
-    "detection_types": ["bottle", "can", "carton", "paper", "plastic"]
+    "image_size": 320,
+    "detection_types": [
+      "bottle",
+      "can",
+      "carton",
+      "paper",
+      "plastic"
+    ]
   },
   "ssd_mobilenet": {
     "model_path": "models/frozen_inference_graph.pb",
@@ -42,6 +52,15 @@
     "confidence_threshold": 0.45,
     "input_width": 320,
     "input_height": 320,
-    "detection_types": ["bottle", "can", "carton", "paper", "plastic"]
+    "detection_types": [
+      "bottle"
+    ]
+  },
+  "detection_interval_ms": 250,
+  "tracking": {
+    "line_y_ratio": 0.55,
+    "direction": "both",
+    "max_distance": 90,
+    "max_missing_frames": 4
   }
 }
