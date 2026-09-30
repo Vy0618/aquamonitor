@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from RaspberryPi.detection.yolo_detector import Detection
+from backend.detection.types import Detection
 
 
 Point = Tuple[int, int]

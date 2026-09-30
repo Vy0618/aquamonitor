@@ -11,10 +11,11 @@ from unittest.mock import MagicMock, patch
 import cv2
 import numpy as np
 
-from RaspberryPi.camera.webcam_config import LatestFrameCamera, WebcamConfig
-from RaspberryPi.detection.yolo_detector import Detection, EXPECTED_CLASSES
-from RaspberryPi.monitoring import monitor_residuos as monitor
-from RaspberryPi.tracking.line_tracker import LineTracker
+from backend.camera.webcam_config import LatestFrameCamera, WebcamConfig
+from backend.detection.types import Detection
+from backend.detection.yolo_detector import EXPECTED_CLASSES
+from backend.monitoring import monitor_residuos as monitor
+from backend.tracking.line_tracker import LineTracker
 
 
 def detection(x, y, confidence=0.8, name="bottle"):
@@ -89,7 +90,7 @@ class PersistenceTests(unittest.TestCase):
 class CameraTests(unittest.TestCase):
     def test_windows_and_linux_select_backend(self):
         for system, expected in (("Windows", cv2.CAP_DSHOW), ("Linux", cv2.CAP_V4L2)):
-            with patch("RaspberryPi.camera.webcam_config.platform.system", return_value=system), patch("RaspberryPi.camera.webcam_config.cv2.VideoCapture") as factory:
+            with patch("backend.camera.webcam_config.platform.system", return_value=system), patch("backend.camera.webcam_config.cv2.VideoCapture") as factory:
                 camera = WebcamConfig().open_camera()
                 factory.assert_called_once_with(0, expected)
                 camera.set.assert_any_call(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -97,7 +98,7 @@ class CameraTests(unittest.TestCase):
                 camera.set.assert_any_call(cv2.CAP_PROP_FPS, 15)
 
     def test_failed_open_releases_capture(self):
-        with patch("RaspberryPi.camera.webcam_config.cv2.VideoCapture") as factory:
+        with patch("backend.camera.webcam_config.cv2.VideoCapture") as factory:
             factory.return_value.isOpened.return_value = False
             with self.assertRaises(RuntimeError):
                 WebcamConfig().open_camera()

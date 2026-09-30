@@ -8,7 +8,7 @@ from typing import Iterable, List
 import cv2
 import numpy as np
 
-from RaspberryPi.detection.yolo_detector import Detection
+from backend.detection.types import Detection
 
 
 # IDs COCO do SSD MobileNet. Para reconhecer as cinco classes do projeto, use

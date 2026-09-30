@@ -14,37 +14,16 @@ import uuid
 
 import cv2
 
-from RaspberryPi.camera.webcam_config import LatestFrameCamera, WebcamConfig
-from RaspberryPi.communication.backend_client import BackendClient, BackendConfig
-from RaspberryPi.detection.yolo_detector import EXPECTED_CLASSES, YoloDetector
-from RaspberryPi.station.station_document import StationDocument
-from RaspberryPi.tracking.line_tracker import LineTracker
+from backend.camera.webcam_config import LatestFrameCamera, WebcamConfig
+from backend.communication.backend_client import BackendClient, BackendConfig
+from backend.detection.yolo_detector import EXPECTED_CLASSES, YoloDetector
+from backend.station.station_document import StationDocument
+from backend.tracking.line_tracker import LineTracker
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-CONFIG_FILE = BASE_DIR / "config" / "raspberrypi_config.json"
+from backend.settings import CONFIG_FILE, load_config
 COUNTS_FILE = BASE_DIR / "data" / "contagem_residuos.json"
 
-
-def load_config(path: Path = CONFIG_FILE) -> dict:
-    try:
-        config = json.loads(path.read_text(encoding="utf-8-sig"))
-    except (OSError, ValueError) as error:
-        raise RuntimeError(f"Configuração inválida em {path}: {error}") from error
-    if not isinstance(config, dict):
-        raise ValueError("A configuração deve ser um objeto JSON.")
-    station_id = config.get("station_id")
-    if type(station_id) is not int or station_id <= 0:
-        raise ValueError("station_id deve ser um inteiro positivo.")
-    types = config["detection"]["detection_types"]
-    if not isinstance(types, list) or sorted(types) != sorted(EXPECTED_CLASSES):
-        raise ValueError(f"detection.detection_types deve conter: {', '.join(EXPECTED_CLASSES)}")
-    interval = config.get("detection_interval_ms", 250)
-    if not isinstance(interval, (int, float)) or not 0 < interval < float("inf"):
-        raise ValueError("detection_interval_ms deve ser positivo e finito.")
-    ratio = config.get("tracking", {}).get("line_y_ratio", 0.55)
-    if not isinstance(ratio, (int, float)) or not 0 < ratio < 1:
-        raise ValueError("tracking.line_y_ratio deve estar entre 0 e 1.")
-    return config
 
 
 def load_counts(path: Path) -> dict[str, int]:
@@ -114,7 +93,7 @@ def create_detector(config: dict, name: str):
             device="cpu",
             allowed_classes=tuple(settings["detection_types"]),
         )
-    from RaspberryPi.detection.ssd_mobilenet_detector import SsdMobileNetDetector
+    from backend.detection.ssd_mobilenet_detector import SsdMobileNetDetector
     settings = config["ssd_mobilenet"]
     return SsdMobileNetDetector(
         model_path=BASE_DIR / settings["model_path"],

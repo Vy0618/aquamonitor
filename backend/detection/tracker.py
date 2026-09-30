@@ -60,7 +60,8 @@ class ByteTrackTracker:
                 track_id=int(track_id),
                 xyxy=tuple(map(float, box)),
                 class_name=names.get(int(class_id)),
+                confidence=float(confidence),
             )
-            for box, class_id, track_id in zip(tracked.xyxy, tracked.class_id, tracked.tracker_id)
+            for box, class_id, track_id, confidence in zip(tracked.xyxy, tracked.class_id, tracked.tracker_id, tracked.confidence)
             if track_id is not None
         ]

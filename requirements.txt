@@ -6,7 +6,4 @@ supervision==0.27.0
 lap==0.5.12
 cython-bbox==0.1.5
 numpy==1.26.4
-ultralytics>=8.0.0
-opencv-python>=4.8.0
-requests>=2.31.0
-numpy>=1.24.0
+-r backend/requirements-station.txt

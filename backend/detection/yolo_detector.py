@@ -1,8 +1,9 @@
 """Detecção de resíduos usando o modelo YOLO treinado do projeto."""
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
+
+from .types import Detection
 
 import numpy as np
 
@@ -10,22 +11,10 @@ import numpy as np
 EXPECTED_CLASSES = ("bottle", "can", "carton", "paper", "plastic")
 
 
-@dataclass(frozen=True)
-class Detection:
-    class_name: str
-    confidence: float
-    bbox: Tuple[int, int, int, int]  # x1, y1, x2, y2
-
-    @property
-    def centroid(self) -> Tuple[int, int]:
-        x1, y1, x2, y2 = self.bbox
-        return (x1 + x2) // 2, (y1 + y2) // 2
-
-
 class YoloDetector:
     def __init__(
         self,
-        model_path: str | Path = Path(__file__).resolve().parents[1] / "models" / "best (1).pt",
+        model_path: str | Path = Path(__file__).resolve().parent / "models" / "best (1).pt",
         confidence_threshold: float = 0.45,
         image_size: int = 320,
         device: str | None = "cpu",
@@ -34,7 +23,7 @@ class YoloDetector:
         try:
             from ultralytics import YOLO
         except ImportError as error:
-            raise RuntimeError("Instale: python -m pip install -r RaspberryPi/config/requirements.txt") from error
+            raise RuntimeError("Instale: python -m pip install -r backend/requirements-station.txt") from error
 
         model_file = Path(model_path)
         if not model_file.is_file():

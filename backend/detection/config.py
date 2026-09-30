@@ -4,7 +4,9 @@ Tune ``COUNTING_LINE`` to the camera view before using it in production.  The
 coordinates assume the 640 x 480 capture configured in ``object-ident.py``.
 """
 
-import os
+from backend.settings import load_config
+
+SETTINGS = load_config()
 from dataclasses import dataclass
 from typing import Literal
 
@@ -32,20 +34,28 @@ class ByteTrackConfig:
 
 @dataclass(frozen=True)
 class ApiConfig:
-    """Destination for aggregate counts (implemented by the Phase 3 API)."""
+    """Destination for individual crossing events."""
 
-    base_url: str = os.getenv("BOTTLE_COUNT_API_URL", "http://127.0.0.1:8000")
-    station_id: int = int(os.getenv("BOTTLE_COUNT_STATION_ID", "1"))
-    publish_interval_seconds: float = float(
-        os.getenv("BOTTLE_COUNT_PUBLISH_INTERVAL", "5")
+    base_url: str = SETTINGS['backend']['base_url']
+    station_id: int = SETTINGS['station_id']
+    publish_interval_seconds: float = SETTINGS['backend']['publish_interval_seconds']
+    enabled: bool = SETTINGS['backend']['enabled']
+    detections_path: str = SETTINGS['backend']['detections_path']
+    timeout_seconds: float = SETTINGS['backend']['timeout_seconds']
+
+
+def line_config(settings, width=None, height=None):
+    width = width or settings['camera']['width']
+    height = height or settings['camera']['height']
+    y = height * settings['tracking']['line_y_ratio']
+    return CountingLineConfig(
+        start=(0, y), end=(width, y),
+        direction={'both': 'any', 'down': 'positive', 'up': 'negative'}[settings['tracking']['direction']],
+        classes_to_count=frozenset(settings['ssd_mobilenet']['detection_types']),
+        max_missing_frames=settings['tracking']['max_missing_frames'],
     )
-    # Phase 3 adds the receiving endpoint. Keep local camera testing quiet until
-    # then; set BOTTLE_COUNT_API_ENABLED=1 to enable publishing.
-    enabled: bool = os.getenv("BOTTLE_COUNT_API_ENABLED", "0") == "1"
 
 
-# Horizontal line through the middle of the current 640 x 480 camera frame.
-# This is deliberately centralized so a later UI/config file can replace it.
-COUNTING_LINE = CountingLineConfig(start=(0, 240), end=(640, 240))
-BYTETRACK = ByteTrackConfig()
+COUNTING_LINE = line_config(SETTINGS)
+BYTETRACK = ByteTrackConfig(**SETTINGS['bytetrack'])
 API = ApiConfig()

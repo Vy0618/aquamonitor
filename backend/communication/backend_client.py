@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,7 +21,7 @@ class BackendConfig:
 
 class BackendClient:
     def __init__(self, config: BackendConfig) -> None:
-        base_url = os.getenv("AQUADETECTOR_API_URL", config.base_url).rstrip("/")
+        base_url = config.base_url.rstrip("/")
         if "SEU_IP_DO_BACKEND" in base_url:
             raise RuntimeError("Defina AQUADETECTOR_API_URL com o IP do backend.")
         self.config = BackendConfig(base_url, config.detections_path, config.timeout_seconds)

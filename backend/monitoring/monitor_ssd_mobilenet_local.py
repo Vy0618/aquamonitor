@@ -1,6 +1,6 @@
 """Entrada mantida por compatibilidade; publica normalmente no backend."""
 
-from RaspberryPi.monitoring.monitor_residuos import main
+from backend.monitoring.monitor_residuos import main
 
 
 if __name__ == "__main__":

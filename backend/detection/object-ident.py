@@ -18,29 +18,32 @@ import cv2
 # hyphen and therefore cannot be run with ``python -m``.
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-    from backend.detection.config import API, COUNTING_LINE, ApiConfig
+    from backend.detection.config import API, COUNTING_LINE, ApiConfig, line_config
     from backend.detection.detection_pipeline import DetectionPipeline, PipelineResult
     from backend.detection.tracker import Detection
 else:
-    from .config import API, COUNTING_LINE, ApiConfig
+    from .config import API, COUNTING_LINE, ApiConfig, line_config
     from .detection_pipeline import DetectionPipeline, PipelineResult
     from .tracker import Detection
 
 
-MODELS_DIR = Path(__file__).resolve().parent / "models"
+from backend.settings import CONFIG_FILE, load_config
+from backend.detection.config import ByteTrackConfig
+from backend.detection.tracker import ByteTrackTracker
 
 
 class OpenCVDnnDetector:
     """Adapt OpenCV DNN SSD MobileNet output to the project's Detection type."""
 
-    def __init__(self) -> None:
-        class_file = MODELS_DIR / "coco.names"
+    def __init__(self, settings=None) -> None:
+        settings = settings or load_config()["ssd_mobilenet"]
+        class_file = Path(settings["labels_path"])
         self.class_names = class_file.read_text(encoding="utf-8").splitlines()
         self.net = cv2.dnn_DetectionModel(
-            str(MODELS_DIR / "frozen_inference_graph.pb"),
-            str(MODELS_DIR / "ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt"),
+            settings["model_path"],
+            settings["config_path"],
         )
-        self.net.setInputSize(320, 320)
+        self.net.setInputSize(settings["input_width"], settings["input_height"])
         self.net.setInputScale(1.0 / 127.5)
         self.net.setInputMean((127.5, 127.5, 127.5))
         self.net.setInputSwapRB(True)
@@ -106,29 +109,36 @@ def draw_overlay(image, result: PipelineResult) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Count bottles crossing a camera line")
-    parser.add_argument("--camera", type=int, default=0, help="OpenCV camera index (default: 0)")
-    parser.add_argument("--width", type=int, default=640)
-    parser.add_argument("--height", type=int, default=480)
-    parser.add_argument("--detection-interval", type=float, default=0.25)
-    parser.add_argument("--confidence", type=float, default=0.45)
-    parser.add_argument("--nms", type=float, default=0.2)
-    parser.add_argument("--publish", action="store_true", help="Publish aggregates to the Phase 3 API")
+    parser.add_argument("--config", type=Path, default=CONFIG_FILE)
+    config_parser = argparse.ArgumentParser(add_help=False)
+    config_parser.add_argument("--config", type=Path, default=CONFIG_FILE)
+    known, _ = config_parser.parse_known_args()
+    settings = load_config(known.config)
+    parser.add_argument("--camera", type=int, default=settings["camera"]["device_index"], help="OpenCV camera index (default: 0)")
+    parser.add_argument("--width", type=int, default=settings["camera"]["width"])
+    parser.add_argument("--height", type=int, default=settings["camera"]["height"])
+    parser.add_argument("--detection-interval", type=float, default=settings["detection_interval_ms"] / 1000)
+    parser.add_argument("--confidence", type=float, default=settings["ssd_mobilenet"]["confidence_threshold"])
+    parser.add_argument("--nms", type=float, default=settings["ssd_mobilenet"]["nms_threshold"])
+    parser.add_argument("--publish", action="store_true", help="Publish crossing events to the detection API")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    api_config = ApiConfig(
-        base_url=API.base_url,
-        station_id=API.station_id,
-        publish_interval_seconds=API.publish_interval_seconds,
-        enabled=args.publish or API.enabled,
-    )
-    detector = OpenCVDnnDetector()
-    pipeline = DetectionPipeline(api_config=api_config)
+    settings = load_config(args.config)
+    global COUNTING_LINE
+    COUNTING_LINE = line_config(settings, args.width, args.height)
+    api_config = ApiConfig(**{key: settings['backend'][key] for key in
+        ('base_url', 'publish_interval_seconds', 'detections_path', 'timeout_seconds')},
+        station_id=settings['station_id'], enabled=args.publish or settings['backend']['enabled'])
+    detector = OpenCVDnnDetector(settings['ssd_mobilenet'])
+    pipeline = DetectionPipeline(api_config=api_config, line_config=COUNTING_LINE,
+        tracker=ByteTrackTracker(ByteTrackConfig(**settings['bytetrack'])))
     camera = cv2.VideoCapture(args.camera)
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+    camera.set(cv2.CAP_PROP_FPS, settings["camera"]["fps"])
     if not camera.isOpened():
         raise RuntimeError(f"Could not open camera index {args.camera}")
 

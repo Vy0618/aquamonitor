@@ -17,6 +17,7 @@ class TrackedObject:
     track_id: int
     xyxy: tuple[float, float, float, float]
     class_name: str | None = None
+    confidence: float = 0.0
 
 
 @dataclass(frozen=True)

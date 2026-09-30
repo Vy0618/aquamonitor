@@ -1,7 +1,7 @@
 {
   "station_id": 1,
   "station_document": {
-    "path": "station/station.json",
+    "path": "backend/station/station.json",
     "_id": {
       "$oid": "68c5d6c0a4e71b2f8d000001"
     },
@@ -22,10 +22,12 @@
     }
   },
   "backend": {
-    "base_url": "http://10.237.188.215:8000",
+    "base_url": "http://0.0.0.0:8000",
     "detections_path": "/api/detections",
     "timeout_seconds": 5,
-    "require_connection_on_startup": true
+    "require_connection_on_startup": true,
+    "publish_interval_seconds": 5,
+    "enabled": false
   },
   "camera": {
     "device_index": 0,
@@ -34,7 +36,7 @@
     "fps": 15
   },
   "detection": {
-    "model_path": "models/best (1).pt",
+    "model_path": "backend/detection/models/best (1).pt",
     "confidence_threshold": 0.45,
     "image_size": 320,
     "detection_types": [
@@ -46,15 +48,16 @@
     ]
   },
   "ssd_mobilenet": {
-    "model_path": "models/frozen_inference_graph.pb",
-    "config_path": "models/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt",
-    "labels_path": "models/coco.names",
+    "model_path": "backend/detection/models/frozen_inference_graph.pb",
+    "config_path": "backend/detection/models/ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt",
+    "labels_path": "backend/detection/models/coco.names",
     "confidence_threshold": 0.45,
     "input_width": 320,
     "input_height": 320,
     "detection_types": [
       "bottle"
-    ]
+    ],
+    "nms_threshold": 0.2
   },
   "detection_interval_ms": 250,
   "tracking": {
@@ -62,5 +65,12 @@
     "direction": "both",
     "max_distance": 90,
     "max_missing_frames": 4
+  },
+  "bytetrack": {
+    "track_activation_threshold": 0.25,
+    "lost_track_buffer": 30,
+    "minimum_matching_threshold": 0.8,
+    "frame_rate": 30,
+    "minimum_consecutive_frames": 1
   }
 }
