@@ -28,13 +28,16 @@ class TrackerTests(unittest.TestCase):
         tracker.update([detection(20, 90), detection(200, 90)])
         events = tracker.update([detection(200, 110, 0.9), detection(20, 110, 0.6)])
         self.assertEqual({e.track_id: e.confidence for e in events}, {1: 0.6, 2: 0.9})
+        self.assertTrue(all(e.direction == "positive" for e in events))
         self.assertEqual(tracker.update([detection(20, 80), detection(200, 80)]), [])
 
     def test_direction_and_missing_tracks(self):
         tracker = LineTracker(100, direction="up", max_missing_frames=1)
         tracker.update([detection(20, 90)])
         self.assertEqual(tracker.update([detection(20, 110)]), [])
-        self.assertEqual(len(tracker.update([detection(20, 90)])), 1)
+        events = tracker.update([detection(20, 90)])
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0].direction, "negative")
         tracker.update([])
         tracker.update([])
         self.assertEqual(tracker.objects, {})
@@ -146,6 +149,7 @@ class MonitorTests(unittest.TestCase):
                 event = client.send_detection.call_args.args[0]
                 self.assertEqual(event["confidence"], 0.73)
                 self.assertEqual(event["detection_type"], "bottle")
+                self.assertEqual(event["direction"], "positive")
                 self.assertEqual(show.call_count, 5 if display else 0)
                 camera.read.assert_called_with(copy=bool(display))
             self.assertEqual(writes.call_count, 2)

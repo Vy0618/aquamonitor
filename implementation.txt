@@ -1,3 +1,10 @@
+> **Documento histórico — não usar como roteiro da versão atual.**
+> Este texto descreve uma arquitetura anterior, com `object-ident.py` e rotas
+> `bottle-count` que não estão disponíveis nesta árvore. O monitor atual envia
+> eventos individuais a `/api/detections`; o dashboard consulta `/api/stations`
+> cinco segundos após cada consulta concluída. Consulte o [README](README.md),
+> a [configuração atual](CONFIGURATION.md) e a [validação do painel](dashboard/VALIDATION.md).
+
 ## Plan: Implement ByteTrack Bottle Counting for Line Crossing
 
 **TL;DR**: Create a **composable, reusable tracking pipeline** following Unix philosophy: separate modular components (detector, tracker, line-crossing counter) that each do one thing well and can be used independently. Integrate with existing detection pipeline to count unique bottles crossing a hard-coded line, then send periodic aggregate counts to backend. Architecture: *Any detector* → ByteTrack → Line Crossing Counter → Backend.

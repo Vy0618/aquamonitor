@@ -1,3 +1,10 @@
+> **Documento histórico — não usar como roteiro da versão atual.**
+> Este texto descreve uma arquitetura anterior, com `object-ident.py` e rotas
+> `bottle-count` que não estão disponíveis nesta árvore. O monitor atual envia
+> eventos individuais a `/api/detections`; o dashboard consulta `/api/stations`
+> cinco segundos após cada consulta concluída. Consulte o [README](README.md),
+> a [configuração atual](CONFIGURATION.md) e a [validação do painel](dashboard/VALIDATION.md).
+
 # Aqua Monitor — Guia de Reprodução do Ambiente
 
 > **Repositório:** https://github.com/Vy0618/aquamonitor  

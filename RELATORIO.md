@@ -69,22 +69,11 @@ db.stations.find().forEach(function(station) {
 });
 ```
 
-**Alternativa rápida** (sem inserir eventos individuais, apenas populando o `detection_events` com contagens agrupadas):
-
-```javascript
-db.stations.find().forEach(function(station) {
-    var stationId = station.station_id;
-    var count = Math.floor(Math.random() * 200) + 1;
-    db.detection_events.insertOne({
-        station_id: stationId,
-        detection_type: "bottle",
-        confidence: 1.0,
-        track_id: 0,
-        detected_at: new Date(),
-        event_id: "evt_" + stationId + "_" + Date.now()
-    });
-});
-```
+Esses eventos aleatórios servem apenas para uma base de testes. Cada documento
+conta como **uma** detecção: inserir um único documento por estação adiciona apenas
+uma detecção, independentemente de uma variável `count`. Não há ingestão de
+contagens agrupadas na API atual. Prefira o monitor ou `POST /api/detections` para
+validar o fluxo completo; inserir diretamente no banco ignora a validação da API.
 
 ## Nota
 

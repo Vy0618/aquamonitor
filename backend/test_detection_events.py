@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 from fastapi import HTTPException
 from pymongo.errors import DuplicateKeyError
+from pydantic import ValidationError
 
 import backend.app as application
 
@@ -35,6 +36,37 @@ class DetectionEndpointTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as error:
             application.ingest_detection(self.payload)
         self.assertEqual(error.exception.status_code, 404)
+
+    def test_direction_is_validated_and_persisted(self) -> None:
+        for direction in ("positive", "negative", None):
+            payload = application.DetectionPayload.model_validate({**self.payload.model_dump(), "direction": direction})
+            application.ingest_detection(payload)
+            self.assertEqual(application.detection_events_collection.insert_one.call_args.args[0]["direction"], direction)
+        with self.assertRaises(ValidationError):
+            application.DetectionPayload.model_validate({**self.payload.model_dump(), "direction": "sideways"})
+
+    def test_direction_summary_preserves_types_and_legacy_totals(self) -> None:
+        rows = [
+            {"_id": {"station_id": 1, "detection_type": kind, **direction}, "count": count}
+            for kind, direction, count in [
+                ("bottle", {"direction": "positive"}, 3),
+                ("bottle", {"direction": "negative"}, 2),
+                ("bottle", {}, 4),
+                ("bottle", {"direction": None}, 1),
+                ("can", {"direction": "positive"}, 7),
+            ]
+        ]
+        application.detection_events_collection.aggregate.return_value = rows
+        summary = application.detection_summary_for_stations(1)[1]
+        self.assertEqual(summary["total"], 17)
+        self.assertEqual(summary["by_type"], {"bottle": 10, "can": 7})
+        self.assertEqual(summary["by_type_direction"]["bottle"], {"positive": 3, "negative": 2, "unknown": 5})
+        self.assertEqual(summary["by_direction"], {"positive": 10, "negative": 2, "unknown": 5})
+        pipeline = application.detection_events_collection.aggregate.call_args.args[0]
+        self.assertEqual(pipeline[0], {"$match": {"station_id": 1}})
+        self.assertEqual(pipeline[1]["$group"]["_id"]["direction"], "$direction")
+        self.assertEqual(application.serialize_detection_summary([])["by_direction"],
+                         {"positive": 0, "negative": 0, "unknown": 0})
 
     def test_duplicate_event_is_rejected(self) -> None:
         application.detection_events_collection.insert_one.side_effect = DuplicateKeyError("duplicate")

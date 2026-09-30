@@ -1,4 +1,5 @@
 import { detectionTypeLabel } from "./labels.js";
+import { formatBottleDirections } from "./directions.js";
 import { HEATMAP_CONFIG } from "./config.js";
 
 export function createMarkerLayer() {
@@ -70,6 +71,8 @@ export function createMarker(station, onStationSelect, mode = "stations", select
         Total de detecções: ${count.toLocaleString("pt-BR")}
         <br>
         Tipos: ${types}
+        <br>
+        Sentido das garrafas: ${formatBottleDirections(summary)}
         <br>
         Última detecção: ${formatTimestamp(summary.timestamp)}
     `, { autoPan: false});

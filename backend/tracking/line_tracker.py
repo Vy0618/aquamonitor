@@ -24,6 +24,7 @@ class Crossing:
     track_id: int
     class_name: str
     confidence: float
+    direction: str
 
 
 class LineTracker:
@@ -74,7 +75,8 @@ class LineTracker:
             tracked.missing_frames = 0
             if not tracked.counted and self._crossed_line(tracked):
                 tracked.counted = True
-                crossings.append(Crossing(track_id, tracked.class_name, pending[det_index].confidence))
+                direction = "positive" if tracked.centroid[1] > tracked.previous_centroid[1] else "negative"
+                crossings.append(Crossing(track_id, tracked.class_name, pending[det_index].confidence, direction))
 
         for track_id in unmatched_tracks:
             self.objects[track_id].missing_frames += 1

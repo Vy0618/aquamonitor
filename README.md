@@ -7,11 +7,14 @@ O código da estação e do servidor está em `backend/`, mas sua execução é 
 ## Sumário
 
 - [Arquitetura](#arquitetura)
+- [Dashboard](#dashboard)
+- [Limitações atuais](#limitações-atuais)
 - [Configuração](#configuração)
 - [Setup e testes locais](#setup-e-testes-locais)
 - [Setup e testes com a Raspberry Pi](#setup-e-testes-com-a-raspberry-pi)
 - [Controle dos serviços](#controle-dos-serviços)
 - [Comandos úteis e diagnóstico](#comandos-úteis-e-diagnóstico)
+- [Imagem e vídeo configuráveis](#imagem-e-vídeo-configuráveis)
 
 ## Arquitetura
 
@@ -33,8 +36,9 @@ O monitor salva contagens por classe e atualiza o documento local da estação.
 
 A API verifica o cadastro da estação, valida o evento e armazena UUID, classe,
 confiança, track e horário. O índice único de `event_id` impede duplicação desse
-mesmo evento. O dashboard consulta o resumo da estação selecionada a cada três
-segundos e mostra mapa, contagem por categoria e horário da última detecção.
+mesmo evento. O dashboard consulta `GET /api/stations`, atualizando todas as estações e seus
+resumos. Uma nova consulta é agendada cinco segundos após a conclusão da anterior;
+cada requisição tem timeout de dez segundos.
 
 ### Organização do código
 
@@ -57,24 +61,90 @@ Os pesos ficam em `backend/detection/models/`. O SSD usa `.pb`, `.pbtxt` e
 o SSD incluído trabalha com `bottle`. O adaptador YOLO filtra `bottle`, `can`,
 `carton`, `paper` e `plastic`; reconhecer essas classes depende do checkpoint.
 
-### Dois pontos de entrada
+### Execução do monitor e módulos alternativos
 
-| Entrada | Rastreador | Envio e interface |
-|---|---|---|
-| `python -m backend.monitoring.monitor_residuos --detector ssd` | Centróides | Envia automaticamente em thread; aceita `--no-display` |
-| `python backend/detection/object-ident.py --publish` | ByteTrack | Envia de forma síncrona a cada intervalo; exige janela gráfica |
-
-O primeiro será usado nos tutoriais. Sem `--detector`, seu padrão é **YOLO**.
+O comando disponível é `python -m backend.monitoring.monitor_residuos`, com
+`--detector ssd` ou `--detector yolo` (padrão). Usa rastreamento por centróides,
+publicação em thread e aceita `--display` / `--no-display`.
 `monitor_ssd_mobilenet` e `monitor_ssd_mobilenet_local` são atalhos para o mesmo
 monitor SSD; o sufixo `local` não desativa a publicação.
 
+Os módulos `detection_pipeline.py`, `tracker.py`, `line_counter.py` e
+`api_client.py` mantêm um pipeline alternativo ByteTrack reutilizável. Contudo,
+**`backend/detection/object-ident.py` não existe nesta árvore**: comandos antigos
+que usam esse arquivo ou sua opção `--publish` não são executáveis nesta versão.
+O monitor principal não usa esse pipeline alternativo.
+
 O monitor tem limite de 32 envios pendentes e encerra se um envio falhar ou o
-limite for atingido. O runner ByteTrack mantém uma fila em memória para repetir
-falhas com o mesmo UUID. Nenhum deles possui fila persistente de eventos.
+limite for atingido. O cliente do pipeline ByteTrack mantém uma fila em memória
+para repetir falhas com o mesmo UUID. Nenhum deles possui fila persistente.
 
 `backend/data/contagem_residuos.json` preserva contagens locais, mas não comprova
 entrega ao servidor. `backend/station/station.json` não é sincronizado com MongoDB.
 O total exibido no dashboard vem dos eventos recebidos, não desses arquivos.
+
+## Dashboard
+
+Interface em português brasileiro, estilo terminal, sem etapa de compilação.
+O servidor HTTP entrega os arquivos; a API fornece os dados do MongoDB.
+
+- **Busca por ID:** centraliza a estação, abre seus detalhes e muda de Calor para
+  Ambos quando necessário. Limpa filtros de localidade que ocultem o resultado.
+- **Estado, município e distrito:** filtram as estações e enquadram a localidade.
+  Limpar filtros volta a enquadrar todas as estações.
+- **Detecções da estação:** identifica o ID selecionado e mostra total, categorias
+  e última detecção. Esse total não representa a soma da área filtrada.
+- **Sentido das garrafas:** mostra contagens positivas (de cima para baixo na
+  imagem), negativas (de baixo para cima) e sem sentido informado. A linha atual
+  é horizontal; os sinais descrevem o movimento na imagem, não a direção
+  geográfica da correnteza. O total continua sendo a soma dos eventos, sem subtrair
+  os negativos. O monitor conta cada track uma vez.
+- **Classificação:** cinco municípios com maior soma de detecções, agrupados por
+  município e estado. Considera todas as estações, independentemente dos filtros.
+- **Calor (padrão):** pesos lineares, sem pontos zerados, com referência fixa de
+  300 detecções. Manchas próximas se somam; a cor não equivale a uma contagem
+  exata por estação. Ampliação e sobreposição alteram a distribuição espacial.
+- **Estações:** círculos com área proporcional à contagem, limitada na referência
+  de 300; valores baixos e zero usam um tamanho mínimo para permitir seleção.
+- **Ambos:** calor com pequenos anéis vazados. Os detalhes mostram o total exato.
+
+A escala, as cores e os raios estão em `dashboard/js/config.js`. A legenda acompanha
+essa configuração. A atualização automática preserva filtros válidos, ampliação e
+posição do mapa; inclui novos cadastros e remove estações excluídas. Se a estação
+selecionada desaparecer, o painel limpa a seleção. Falhas de rede preservam os dados
+anteriores e exibem aviso e horário da última atualização; há novas tentativas,
+inclusive se a primeira consulta falhar. Abas em segundo plano podem atrasar os ciclos.
+
+O horário no cabeçalho indica a última consulta bem-sucedida à API, não a última
+comunicação de cada câmera. O tempo de atividade mede a sessão da página no navegador,
+não o tempo de execução da API ou da Raspberry Pi. A interface de cadastro/exclusão
+fica em `/crud.html`; não há formulário de edição de estação.
+
+## Limitações atuais
+
+Os novos eventos incluem `direction: "positive" | "negative"`. A API armazena o
+campo em `detection_events` e retorna `by_direction` (todas as classes) e
+`by_type_direction` (por classe) no resumo. O painel usa apenas a classe `bottle`
+nos contadores de sentido. Eventos antigos sem esse campo ficam em `unknown`;
+não é possível reconstruir seu movimento apenas pela contagem. Não é necessária
+migração do banco. Após atualizar, reinicie a API e o monitor e recarregue o
+dashboard para que as três partes usem o novo contrato.
+
+- Os totais representam todos os eventos armazenados, sem filtro por período.
+  Alterar `stations.detections` ou `stations.json` não muda os totais da API.
+- Excluir uma estação não exclui seus eventos. Cadastrar novamente o mesmo ID
+  associa os eventos antigos ao novo cadastro e faz os totais reaparecerem.
+- A API valida o ID no cadastro, mas não valida integralmente localização e
+  campos administrativos. Use GeoJSON `Point` com `[longitude, latitude]` numéricos
+  e nomes administrativos consistentes; registros incompletos podem quebrar o mapa.
+- A API não tem autenticação e aceita CORS amplo. A execução descrita é de um
+  protótipo em ambiente controlado; não representa uma implantação pública pronta.
+- Cada consulta geral agrega o histórico de eventos e reúne seus horários.
+  O custo cresce com o volume e com cada navegador aberto; não há paginação nem
+  resumos pré-calculados. O intervalo do painel não garante atualização em tempo real.
+- Não há confirmação de atividade periódica das câmeras, fila persistente de
+  envio nem recuperação automática da câmera. Testes simulados não substituem
+  medição de precisão e desempenho no equipamento.
 
 ## Configuração
 
@@ -93,18 +163,18 @@ A API e o dashboard não leem esse arquivo.
 | `detection_interval_ms` | Intervalo de inferência; atual 250 ms |
 | `ssd_mobilenet` / `detection` | Configuração do SSD / YOLO |
 | `tracking` | Linha proporcional, direção e associação por centróide |
-| `bytetrack` | Parâmetros exclusivos do runner ByteTrack |
+| `bytetrack` | Parâmetros dos módulos alternativos ByteTrack |
 
 **O JSON atual contém `http://0.0.0.0:8000`. Substitua esse destino ou use as
 variáveis dos exemplos abaixo.** `0.0.0.0` serve para o Uvicorn escutar em todas
 as interfaces; a estação deve usar um IP ou hostname do servidor.
 
-`AQUADETECTOR_API_URL` sobrescreve o JSON nos dois runners e tem prioridade sobre
+`AQUADETECTOR_API_URL` sobrescreve o JSON no carregador compartilhado e tem prioridade sobre
 `BOTTLE_COUNT_API_URL`. `BOTTLE_COUNT_STATION_ID` sobrescreve a estação.
 `AQUAMONITOR_CONFIG` define o arquivo padrão. Não há leitura automática de `.env`.
 
-`backend.enabled`, `BOTTLE_COUNT_API_ENABLED`, `--publish` e
-`backend.publish_interval_seconds` controlam o runner ByteTrack. O monitor
+`backend.enabled`, `BOTTLE_COUNT_API_ENABLED` e
+`backend.publish_interval_seconds` controlam o cliente/pipeline ByteTrack. O monitor
 SSD/YOLO publica sempre, inclusive com `backend.enabled=false`.
 
 ## Setup e testes locais
@@ -150,6 +220,17 @@ Não exigem câmera nem servidor MongoDB: usam simulações de captura, envio e 
 Um teste carrega o SSD real com imagem sintética. O teste YOLO não valida o modelo
 em hardware. `backend/test_mongodb.py` é uma consulta ao banco real; não use
 `unittest discover` indiscriminadamente na pasta `backend/`.
+
+Os testes do dashboard usam o executor nativo do Node.js, sem `npm install`.
+Com Node.js 22 ou superior:
+
+```bash
+node --test dashboard/tests/*.mjs
+```
+
+Cobrem intensidade do calor, modos do mapa, preservação de filtros e consultas à
+API simulada. Node.js é necessário apenas para esses testes, não para servir o painel.
+Veja também o [roteiro de validação no navegador](dashboard/VALIDATION.md).
 
 ### 3. Iniciar o MongoDB
 
@@ -204,12 +285,17 @@ raiz não é importado automaticamente. Alternativamente, use o formulário
 
 ```bash
 source .venv/bin/activate
-python -m http.server 3000 --bind 127.0.0.1 --directory dashboard
+python serve_dashboard.py
 ```
 
+O servidor `serve_dashboard.py` fixa a pasta do dashboard em relação ao próprio
+script e desativa o cache dos arquivos. Ao substituir um servidor antigo, pare-o
+com Ctrl+C e faça uma recarga forçada no navegador. Para testar sem o cache da
+origem anterior, use `python serve_dashboard.py --port 3001` e abra a porta 3001.
+
 Abra `http://127.0.0.1:3000`, selecione a estação 1 e anote sua contagem inicial.
-O mapa e suas bibliotecas externas precisam de internet. Se a página já estava
-aberta antes de cadastrar a estação, recarregue-a.
+O mapa e suas bibliotecas externas precisam de internet. Cadastros e exclusões
+aparecem no próximo ciclo automático, sem recarregar a página.
 
 ### 7. Iniciar o monitor — terminal 3
 
@@ -316,11 +402,13 @@ Aguarde a conclusão do envio e o próximo ciclo de consulta do painel.
 Para abrir o dashboard em outro dispositivo, sirva-o com:
 
 ```bash
-python -m http.server 3000 --bind 0.0.0.0 --directory dashboard
+python serve_dashboard.py --bind 0.0.0.0
 ```
 
 Também substitua `http://127.0.0.1:8000` pelo IP do computador em
-`dashboard/js/api.js`, `dashboard/js/detection-counter.js` e `dashboard/js/crud.js`.
+`dashboard/js/api.js` e `dashboard/js/crud.js`.
+`dashboard/js/detection-counter.js` permanece como auxiliar, mas não é importado
+pelo dashboard atual.
 Depois abra `http://192.168.1.100:3000`. Mudar apenas o bind não altera o destino
 das requisições feitas pelo navegador.
 
@@ -411,9 +499,8 @@ em `aquamonitor.json` exigem reiniciar o processo, sem `daemon-reload`.
 ## Comandos úteis e diagnóstico
 
 ```bash
-# Ajuda do monitor e do runner alternativo
+# Ajuda do monitor
 python -m backend.monitoring.monitor_residuos --help
-python backend/detection/object-ident.py --help
 
 # Arquivo de configuração alternativo
 python -m backend.monitoring.monitor_residuos --config aquamonitor.json --detector ssd --no-display
@@ -436,12 +523,32 @@ python backend/test_mongodb.py
 | Câmera não abre | Índice em `camera.device_index`, conexão, permissões e uso por outro processo |
 | Modelo não encontrado | Presença dos pesos e caminhos relativos ao arquivo de configuração |
 | Contagem local diferente do painel | Painel soma eventos recebidos; JSON local pode conter histórico ou envios que falharam |
-| Erro `.flatten()` no `object-ident.py` | O runner atual ainda assume arrays em frames vazios; para este tutorial use o monitor SSD |
+| Dashboard antigo após alteração | Conferir a pasta servida e o cache do navegador, conforme abaixo |
+| Mapa sem manchas | Conferir eventos na API; estações zeradas não geram calor |
 
-A execução ByteTrack é uma alternativa existente, não o caminho deste tutorial.
-Seu envio pode bloquear temporariamente a captura e o código atual ainda possui
-o tratamento incompleto de saída vazia do OpenCV. Não há reinício automático de
-câmera nem fila SQLite. Dados pendentes em memória se perdem ao encerrar.
+### Arquivos antigos no navegador
+
+Execute o servidor a partir da raiz correta. Para eliminar ambiguidade, use um
+caminho absoluto (ajuste ao seu clone):
+
+```bash
+python /home/vyzxc/aquamonitor/serve_dashboard.py
+curl -s http://127.0.0.1:3000/ | grep -E 'mapMode|systemStatus'
+```
+
+Os dois identificadores devem existir no HTML atual. Se estiverem ausentes, confira
+qual processo usa a porta 3000 e qual pasta ele serve. Se estiverem presentes,
+abra as ferramentas do navegador (F12), marque **Desativar cache** na aba **Rede**
+e recarregue com Ctrl+Shift+R. A opção vale enquanto as ferramentas estão abertas.
+A atualização automática de dados não substitui o recarregamento após editar JS/CSS/HTML.
+
+### Documentos históricos
+
+`reproduction.md`, `rpi-server-communication.md` e `implementation.txt` preservam
+instruções ou planos antigos, incluindo `object-ident.py` e rotas `bottle-count`
+que não existem na API atual. Para executar, use este README e os documentos
+atualizados abaixo. `RELATORIO.md` explica a origem das contagens; seus exemplos
+com eventos aleatórios são apenas para uma base de testes.
 
 Mais detalhes: [configuração](CONFIGURATION.md) e [monitor](backend/MONITOR.md).
 

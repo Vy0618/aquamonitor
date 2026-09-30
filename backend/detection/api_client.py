@@ -27,6 +27,7 @@ class BottleCountApiClient:
             'detection_type': event.class_name or 'bottle',
             'confidence': confidence,
             'track_id': event.track_id,
+            'direction': event.direction,
             'detected_at': datetime.now(timezone.utc).isoformat(),
         })
 

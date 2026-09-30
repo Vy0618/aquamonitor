@@ -36,6 +36,7 @@ class PublishingTests(unittest.TestCase):
             payload = DetectionPayload.model_validate(post.call_args.kwargs['json'])
             self.assertEqual((payload.station_id, payload.track_id, payload.confidence), (12, 7, .85))
             self.assertEqual(payload.detection_type, 'bottle')
+            self.assertEqual(payload.direction, 'positive')
 
     def test_retry_and_duplicate_confirmation(self):
         client = BottleCountApiClient(ApiConfig(enabled=True))

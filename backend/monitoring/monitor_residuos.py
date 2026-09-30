@@ -169,6 +169,7 @@ def run(config: dict, detector_name: str, display: bool | None = None) -> None:
                             "event_id": str(uuid.uuid4()), "station_id": station_id,
                             "detection_type": crossing.class_name, "confidence": crossing.confidence,
                             "track_id": crossing.track_id,
+                            "direction": crossing.direction,
                             "detected_at": datetime.now(timezone.utc).isoformat(),
                         }
                         pending.append(sender.submit(client.send_detection, event))

@@ -1,6 +1,7 @@
 """API do Aqua Monitor: estações e eventos gerais de detecção."""
 
 from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,7 @@ class DetectionPayload(BaseModel):
     confidence: float = Field(ge=0, le=1)
     track_id: int = Field(ge=0)
     detected_at: datetime
+    direction: Literal["positive", "negative"] | None = None
 
     @field_validator("event_id", "detection_type")
     @classmethod
@@ -53,9 +55,18 @@ def initialize_indexes() -> None:
 
 def serialize_detection_summary(rows: list[dict]) -> dict:
     by_type: dict[str, int] = {}
+    by_direction = {"positive": 0, "negative": 0, "unknown": 0}
+    by_type_direction: dict[str, dict[str, int]] = {}
     last_detected_at: datetime | None = None
     for row in rows:
-        by_type[row["_id"]["detection_type"]] = row["count"]
+        detection_type = row["_id"]["detection_type"]
+        direction = row["_id"].get("direction")
+        if direction not in {"positive", "negative"}:
+            direction = "unknown"
+        by_type[detection_type] = by_type.get(detection_type, 0) + row["count"]
+        by_direction[direction] += row["count"]
+        type_directions = by_type_direction.setdefault(detection_type, {"positive": 0, "negative": 0, "unknown": 0})
+        type_directions[direction] += row["count"]
         # Older documents may have stored an ISO string, while current
         # documents store a BSON datetime. Normalize every value before
         # ordering so BSON type precedence cannot choose the wrong timestamp.
@@ -69,6 +80,8 @@ def serialize_detection_summary(rows: list[dict]) -> dict:
     return {
         "total": sum(by_type.values()),
         "by_type": by_type,
+        "by_direction": by_direction,
+        "by_type_direction": by_type_direction,
         "timestamp": last_detected_at.isoformat() if last_detected_at else None,
     }
 
@@ -97,7 +110,7 @@ def detection_summary_for_stations(station_id: int | None = None) -> dict[int, d
     if station_id is not None:
         pipeline.append({"$match": {"station_id": station_id}})
     pipeline.append({"$group": {
-        "_id": {"station_id": "$station_id", "detection_type": "$detection_type"},
+        "_id": {"station_id": "$station_id", "detection_type": "$detection_type", "direction": "$direction"},
         "count": {"$sum": 1},
         "detected_at_values": {"$push": "$detected_at"},
     }})
@@ -123,7 +136,7 @@ def get_stations():
     summaries = detection_summary_for_stations()
     result = []
     for station in stations_collection.find():
-        summary = summaries.get(station["station_id"], {"total": 0, "by_type": {}, "timestamp": None})
+        summary = summaries.get(station["station_id"], serialize_detection_summary([]))
         result.append({
             "station_id": station["station_id"],
             "location": station.get("location"),
@@ -162,6 +175,6 @@ def get_station_detections(station_id: int):
     if stations_collection.find_one({"station_id": station_id}) is None:
         raise HTTPException(status_code=404, detail="Station not found")
     summary = detection_summary_for_stations(station_id).get(
-        station_id, {"total": 0, "by_type": {}, "timestamp": None}
+        station_id, serialize_detection_summary([])
     )
     return {"station_id": station_id, **summary}

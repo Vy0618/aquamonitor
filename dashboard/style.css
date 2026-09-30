@@ -82,6 +82,10 @@ aside {
 .count-directions { margin-top: 6px; overflow-wrap: anywhere; }
 .detection-status { margin-top: 4px; overflow-wrap: anywhere; }
 .direction { color: var(--text); font-weight: 400; }
+.bottle-directions { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.bottle-directions h3 { margin: 0 0 6px; font-size: 11px; font-weight: 400; color: var(--accent); }
+.bottle-directions p { margin: 0 0 6px; }
+.direction-help { font-size: 10px; color: var(--muted); }
 
 .ranking-note { margin: 0 0 10px; color: var(--muted); font-size: 11px; }
 .ranking-note:empty { display: none; }
