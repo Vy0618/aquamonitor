@@ -72,5 +72,13 @@
     "minimum_matching_threshold": 0.8,
     "frame_rate": 30,
     "minimum_consecutive_frames": 1
+  },
+  "display": {
+    "enabled": false
+  },
+  "image_processing": {
+    "enabled": true,
+    "max_width": 640,
+    "max_height": 480
   }
 }

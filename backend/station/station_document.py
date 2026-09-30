@@ -20,7 +20,8 @@ class StationDocument:
         return document
 
     def update(self, detections: Optional[int] = None, status: Optional[str] = None) -> dict[str, Any]:
-        document = self.ensure_exists()
+        # On first startup, create and update in a single write.
+        document = self._read() if self.path.is_file() else self._base_document()
         if detections is not None:
             # O contador inicial configurado nunca é reduzido por um arquivo local antigo.
             document["detections"] = max(int(document.get("detections", 0)), detections)

@@ -15,6 +15,7 @@ import uuid
 import cv2
 
 from backend.camera.webcam_config import LatestFrameCamera, WebcamConfig
+from backend.camera.image_processing import prepare_frame, restore_coordinates
 from backend.communication.backend_client import BackendClient, BackendConfig
 from backend.detection.yolo_detector import EXPECTED_CLASSES, YoloDetector
 from backend.station.station_document import StationDocument
@@ -105,7 +106,10 @@ def create_detector(config: dict, name: str):
     )
 
 
-def run(config: dict, detector_name: str, display: bool = True) -> None:
+def run(config: dict, detector_name: str, display: bool | None = None) -> None:
+    if display is None:
+        display = config.get("display", {}).get("enabled", True)
+    processing = config.get("image_processing", {"enabled": False})
     station_id = config["station_id"]
     counts = load_counts(COUNTS_FILE)
     detector = create_detector(config, detector_name)
@@ -139,7 +143,7 @@ def run(config: dict, detector_name: str, display: bool = True) -> None:
             while True:
                 while pending and pending[0].done():
                     pending.popleft().result()
-                frame = camera.read()
+                frame = camera.read(copy=display)
                 if frame.shape[:2] != frame_shape:
                     frame_shape = frame.shape[:2]
                     tracker = tracker_for_frame(frame, tracking_settings)
@@ -149,13 +153,15 @@ def run(config: dict, detector_name: str, display: bool = True) -> None:
                 now = time.monotonic()
                 if now >= next_detection:
                     next_detection = now + interval
-                    detections = detector.detect(frame)
+                    processed = prepare_frame(frame, processing)
+                    detections = restore_coordinates(
+                        detector.detect(processed), processed.shape, frame.shape
+                    )
                     crossings = tracker.update(detections)
                     for crossing in crossings:
                         counts[crossing.class_name] += 1
                     if crossings:
                         save_counts(COUNTS_FILE, station_id, counts)
-                        station.update(detections=sum(counts.values()))
                     for crossing in crossings:
                         if len(pending) >= 32:
                             raise RuntimeError("Backend lento: limite de 32 envios pendentes atingido. Verifique a conexão.")
@@ -186,9 +192,12 @@ def main(default_detector: str = "yolo") -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=CONFIG_FILE)
     parser.add_argument("--detector", choices=("yolo", "ssd"), default=default_detector)
-    parser.add_argument("--no-display", action="store_true", help="Executa sem janela; encerre com Ctrl+C.")
+    preview = parser.add_mutually_exclusive_group()
+    preview.add_argument("--display", dest="display", action="store_true", help="Exibe vídeo, sobrescrevendo o JSON.")
+    preview.add_argument("--no-display", dest="display", action="store_false", help="Executa sem janela; encerre com Ctrl+C.")
+    parser.set_defaults(display=None)
     args = parser.parse_args()
-    run(load_config(args.config), args.detector, display=not args.no_display)
+    run(load_config(args.config), args.detector, display=args.display)
 
 
 if __name__ == "__main__":

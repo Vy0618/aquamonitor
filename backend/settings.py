@@ -12,6 +12,14 @@ def load_config(path=None):
     config = json.loads(path.read_text(encoding='utf-8-sig'))
     if not isinstance(config, dict):
         raise ValueError('Configuration must be a JSON object')
+    display = config.setdefault('display', {'enabled': True})
+    processing = config.setdefault('image_processing', {'enabled': False, 'max_width': 640, 'max_height': 480})
+    for name, section in (('display', display), ('image_processing', processing)):
+        if not isinstance(section, dict) or type(section.get('enabled')) is not bool:
+            raise ValueError(f'{name}.enabled must be a boolean')
+    for key in ('max_width', 'max_height'):
+        if type(processing.get(key)) is not int or processing[key] <= 0:
+            raise ValueError(f'image_processing.{key} must be a positive integer')
     backend = config['backend']
     backend['base_url'] = os.getenv('AQUADETECTOR_API_URL', os.getenv('BOTTLE_COUNT_API_URL', backend['base_url'])).rstrip('/')
     config['station_id'] = int(os.environ['BOTTLE_COUNT_STATION_ID']) if 'BOTTLE_COUNT_STATION_ID' in os.environ else config['station_id']

@@ -1,3 +1,4 @@
+import { detectionTypeLabel } from "./labels.js";
 import { HEATMAP_CONFIG } from "./config.js";
 
 export function createMarkerLayer() {
@@ -10,11 +11,11 @@ function getDetectionSummary(station) {
 
 function formatTimestamp(timestamp) {
     if (!timestamp) {
-        return "no data";
+        return "Sem dados";
     }
 
     const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? "no data" : date.toLocaleString();
+    return Number.isNaN(date.getTime()) ? "Sem dados" : date.toLocaleString("pt-BR");
 }
 
 function escapeHtml(value) {
@@ -32,14 +33,14 @@ export function createMarker(station, onStationSelect) {
     const summary = getDetectionSummary(station);
     const count = Number(summary.total || 0);
     const types = Object.entries(summary.by_type || {})
-        .map(([type, total]) => `${escapeHtml(type)}: ${Number(total) || 0}`)
-        .join(", ") || "no detections";
+        .map(([type, total]) => `${escapeHtml(detectionTypeLabel(type))}: ${(Number(total) || 0).toLocaleString("pt-BR")}`)
+        .join(", ") || "Nenhuma detecção";
     const marker = L.marker([latitude, longitude], {
         autoPan: false,
         icon: L.divIcon({
             className: "station-marker",
-            html: `<div class="station-marker__pin" title="Station ${station.station_id}">
-                <strong>S${station.station_id}</strong><span>${count}</span>
+            html: `<div class="station-marker__pin" title="Estação ${escapeHtml(station.station_id)}">
+                <strong>E${escapeHtml(station.station_id)}</strong><span>${count.toLocaleString("pt-BR")}</span>
             </div>`,
             iconSize: [42, 42],
             iconAnchor: [21, 21],
@@ -49,17 +50,17 @@ export function createMarker(station, onStationSelect) {
 
     marker.bindPopup(`
         <b>
-            Station ${escapeHtml(station.station_id)}
+            Estação ${escapeHtml(station.station_id)}
         </b>
 
         <br>
 
         <br>
-        Total detections: ${count}
+        Total de detecções: ${count.toLocaleString("pt-BR")}
         <br>
-        Types: ${types}
+        Tipos: ${types}
         <br>
-        Last detection: ${formatTimestamp(summary.timestamp)}
+        Última detecção: ${formatTimestamp(summary.timestamp)}
     `, { autoPan: false});
 
     if (onStationSelect) {

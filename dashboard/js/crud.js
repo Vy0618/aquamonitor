@@ -62,18 +62,18 @@ form.addEventListener("submit", async (event) => {
         );
 
 
-        const data = await response.json();
+        // As mensagens são traduzidas conforme o status da resposta.
 
 
         if (!response.ok) {
             throw new Error(
-                data.detail || "Failed to add station"
+                response.status === 409 ? "Já existe uma estação com esse ID." : response.status === 422 ? "Dados inválidos. Confira os campos e informe um ID inteiro positivo." : "Não foi possível cadastrar a estação."
             );
         }
 
 
         message.textContent =
-            "Station added successfully.";
+            "Estação cadastrada com sucesso.";
 
         form.reset();
 
@@ -83,7 +83,7 @@ form.addEventListener("submit", async (event) => {
         console.error(error);
 
         message.textContent =
-            "Error: " + error.message;
+            "Erro: " + (error instanceof TypeError ? "Não foi possível conectar ao servidor." : error.message);
 
     }
 
@@ -115,7 +115,7 @@ deleteForm.addEventListener("submit", async (event) => {
     if (!station_id) {
 
         deleteMessage.textContent =
-            "Please enter a Station ID.";
+            "Informe o ID da estação.";
 
         return;
 
@@ -125,7 +125,7 @@ deleteForm.addEventListener("submit", async (event) => {
     // Confirmar exclusão
 
     const confirmed = confirm(
-        `Are you sure you want to delete station ${station_id}?`
+        `Tem certeza de que deseja excluir a estação ${station_id}?`
     );
 
 
@@ -144,20 +144,20 @@ deleteForm.addEventListener("submit", async (event) => {
         );
 
 
-        const data = await response.json();
+        // As mensagens são traduzidas conforme o status da resposta.
 
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Failed to delete station"
+                response.status === 404 ? "Estação não encontrada." : response.status === 422 ? "ID da estação inválido." : "Não foi possível excluir a estação."
             );
 
         }
 
 
         deleteMessage.textContent =
-            "Station deleted successfully.";
+            "Estação excluída com sucesso.";
 
         deleteForm.reset();
 
@@ -167,7 +167,7 @@ deleteForm.addEventListener("submit", async (event) => {
         console.error(error);
 
         deleteMessage.textContent =
-            "Error: " + error.message;
+            "Erro: " + (error instanceof TypeError ? "Não foi possível conectar ao servidor." : error.message);
 
     }
 

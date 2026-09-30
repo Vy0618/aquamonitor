@@ -61,7 +61,7 @@ class LatestFrameCamera:
                 self.error = error
                 self.condition.notify_all()
 
-    def read(self):
+    def read(self, *, copy: bool = True):
         with self.condition:
             ready = self.condition.wait_for(
                 lambda: self.sequence != self.consumed or self.error is not None,
@@ -72,7 +72,9 @@ class LatestFrameCamera:
             if not ready:
                 raise RuntimeError("A câmera não entregou um frame em 5 segundos.")
             self.consumed = self.sequence
-            return self.frame.copy()
+            # The producer replaces this array; consumers must not mutate it
+            # when requesting a shared reference (headless processing).
+            return self.frame.copy() if copy else self.frame
 
     def close(self):
         self.stopped.set()

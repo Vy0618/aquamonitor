@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>AQUA MONITOR</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -14,42 +15,57 @@
 
 <body>
     <header>
-        <div class="title">
-            AQUA MONITOR
-        </div>
+        <h1 class="title">aqua monitor</h1>
         <div class="system-status">
-            SYSTEM STATUS: ONLINE
+            [ ON-LINE ]
         </div>
     </header>
     <main>
-        <aside>
+        <aside aria-label="Monitoramento e filtros">
             <div class="section">
                 <div class="section-title">
-                    SYSTEM UPTIME
+                    Tempo de atividade
                 </div>
                 <div class="uptime" id="uptime">
                     00:00:00
                 </div>
                 <div class="uptime-label">
-                    TIME SINCE SYSTEM START
+                    
                 </div>
             </div>
 
             <div class="section">
                 <div class="section-title">
-                    DETECTIONS
+                    Detecções da estação
                 </div>
+                <div class="selected-station" id="selectedStation" role="status">Nenhuma estação selecionada</div>
                 <div class="detection-count" id="detectionCount">
                     <span class="count-value">0</span>
-                    <span class="count-label">total detections</span>
+                    <span class="count-label">detecções totais</span>
                 </div>
                 <div class="count-directions" id="detectionTypes">
-                    <span class="direction positive">no detections</span>
+                    <span class="direction positive">Nenhuma detecção</span>
                 </div>
                 <div class="detection-status" id="detectionStatus">
-                    polling inactive
+                    Atualização inativa
                 </div>
             </div>
+
+            <section class="section" aria-labelledby="cityRankingTitle">
+                <h2 id="cityRankingTitle" class="section-title">Municípios com mais detecções</h2>
+                <p class="ranking-note">5 maiores · todas as estações</p>
+                <ol id="cityRanking" class="city-ranking"></ol>
+                <p id="cityRankingStatus" class="ranking-note" role="status">Carregando classificação...</p>
+            </section>
+
+            <form id="stationSearchForm" class="filter-section">
+                <h3>Buscar estação</h3>
+                <label for="stationSearch">ID da estação</label>
+                <input id="stationSearch" type="search" placeholder="Digite o ID"
+                    aria-describedby="stationSearchStatus" disabled>
+                <button type="submit" id="stationSearchButton" disabled>Localizar no mapa</button>
+                <p id="stationSearchStatus" role="status" aria-live="polite">Carregando estações...</p>
+            </form>
 
             <div class="filter-section">
 

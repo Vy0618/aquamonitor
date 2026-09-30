@@ -9,7 +9,7 @@ export function createZoomIndicator(map) {
             "zoom-indicator"
         );
 
-        div.innerHTML = `Zoom: ${map.getZoom()}`;
+        div.innerHTML = `Ampliação: ${map.getZoom()}`;
 
         return div;
     };

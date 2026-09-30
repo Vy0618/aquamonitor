@@ -143,7 +143,7 @@ ls -lh backend/detection/models/
 ### 2. Executar os testes automatizados
 
 ```bash
-python -m unittest backend.test_detection_events backend.test_detection_publishing backend.test_settings backend.tests.test_monitor -v
+python -m unittest backend.test_detection_events backend.test_detection_publishing backend.test_settings backend.tests.test_monitor backend.tests.test_image_processing -v
 ```
 
 Não exigem câmera nem servidor MongoDB: usam simulações de captura, envio e banco.
@@ -218,7 +218,7 @@ Conecte uma câmera USB, feche outros programas que a estejam usando e execute:
 ```bash
 source .venv/bin/activate
 export AQUADETECTOR_API_URL=http://127.0.0.1:8000
-python -m backend.monitoring.monitor_residuos --detector ssd
+python -m backend.monitoring.monitor_residuos --detector ssd --display
 ```
 
 No PowerShell, use `$env:AQUADETECTOR_API_URL="http://127.0.0.1:8000"` antes do
@@ -304,7 +304,7 @@ python -m backend.monitoring.monitor_residuos --detector ssd --no-display
 ```
 
 Esse comando funciona sem interface gráfica, inclusive por SSH. Para ver a linha
-e as caixas numa sessão gráfica da Pi, remova `--no-display`. O monitor verifica
+e as caixas numa sessão gráfica da Pi, use `--display`. O monitor verifica
 o cadastro da estação antes de abrir a câmera e publica automaticamente.
 
 ### 5. Validar no computador
@@ -422,7 +422,7 @@ python -m backend.monitoring.monitor_residuos --config aquamonitor.json --detect
 python -m backend.monitoring.monitor_ssd_mobilenet --no-display
 
 # Testes isolados do monitor, com dependências da estação
-python -m unittest backend.tests.test_monitor -v
+python -m unittest backend.tests.test_monitor backend.tests.test_image_processing -v
 
 # Consulta ao MongoDB real, no computador servidor
 python backend/test_mongodb.py
@@ -444,3 +444,48 @@ o tratamento incompleto de saída vazia do OpenCV. Não há reinício automátic
 câmera nem fila SQLite. Dados pendentes em memória se perdem ao encerrar.
 
 Mais detalhes: [configuração](CONFIGURATION.md) e [monitor](backend/MONITOR.md).
+
+
+## Imagem e vídeo configuráveis
+
+No `aquamonitor.json`:
+
+```json
+"display": {
+  "enabled": false
+},
+"image_processing": {
+  "enabled": true,
+  "max_width": 640,
+  "max_height": 480
+}
+```
+
+O monitor SSD/YOLO lê essas duas seções. `display.enabled=false` executa captura,
+contagem e envio sem janela nem desenho de caixas/textos, evitando também a cópia
+do frame destinada à prévia. Use Ctrl+C para encerrar. As opções `--display` e
+`--no-display` sobrescrevem o JSON; reinicie o monitor ao alterar o arquivo.
+
+`image_processing` limita a imagem enviada ao detector, preservando sua proporção,
+sem ampliá-la e usando interpolação de área. O processamento ocorre somente nos
+frames destinados à inferência. As caixas retornam às coordenadas originais antes
+do rastreamento: a linha, a distância máxima e a prévia continuam na resolução da
+captura. Esse limite não força o formato negociado pela câmera.
+
+O limite padrão 640×480 preserva frames já capturados nesse tamanho. Para testar
+uma redução maior, configure 320×240. Reduzir dimensões pode perder detalhes de
+garrafas pequenas; compare a contagem antes e depois. Com `enabled=false`, o frame
+original vai diretamente ao detector. Não foram adicionados filtros de nitidez,
+cor ou contraste que alterem a imagem do modelo.
+
+O tamanho interno do modelo permanece em `ssd_mobilenet.input_width/input_height`
+ou `detection.image_size`. Portanto, redimensionar a imagem anterior à inferência
+não garante diminuir o custo da rede neural e pode acrescentar uma operação de
+resize. O ganho real precisa ser medido na Pi; a execução sem vídeo elimina o
+trabalho de desenho e apresentação independentemente desse ajuste.
+
+O documento local `backend/station/station.json` é gravado somente ao iniciar
+(`online`) e ao encerrar o monitor (`offline`, com a contagem final).
+Não há gravação desse documento a cada cruzamento. Uma interrupção abrupta ou
+queda de energia pode impedir a atualização final. O arquivo de contagens
+`backend/data/contagem_residuos.json` continua sendo salvo nos cruzamentos.

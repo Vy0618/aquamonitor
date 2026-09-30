@@ -120,6 +120,8 @@ class CameraTests(unittest.TestCase):
 class MonitorTests(unittest.TestCase):
     def run_monitor(self, directory, network_error=False, display=False):
         config = copy.deepcopy(monitor.load_config())
+        config["display"] = {"enabled": False}
+        config["image_processing"]["enabled"] = False
         config["station_document"]["path"] = str(Path(directory) / "station.json")
         config["station_document"]["detections"] = 0
         counts_path = Path(directory) / "counts.json"
@@ -132,7 +134,8 @@ class MonitorTests(unittest.TestCase):
         if network_error:
             client.send_detection.side_effect = RuntimeError("HTTP indisponível")
         clock = SimpleNamespace(monotonic=MagicMock(side_effect=[0, 0.05, 0.249, 0.25, 0.50]))
-        with patch.object(monitor, "COUNTS_FILE", counts_path), patch.object(monitor, "create_detector", return_value=detector), patch.object(monitor, "BackendClient", return_value=client), patch.object(monitor, "LatestFrameCamera", return_value=camera), patch.object(WebcamConfig, "open_camera"), patch.object(monitor, "time", clock), patch.object(cv2, "namedWindow"), patch.object(cv2, "imshow") as show, patch.object(cv2, "waitKey", return_value=-1), patch.object(cv2, "getWindowProperty", return_value=1), patch.object(cv2, "destroyAllWindows") as destroy:
+        write_document = monitor.StationDocument._write
+        with patch.object(monitor.StationDocument, "_write", autospec=True, side_effect=write_document) as writes, patch.object(monitor, "COUNTS_FILE", counts_path), patch.object(monitor, "create_detector", return_value=detector), patch.object(monitor, "BackendClient", return_value=client), patch.object(monitor, "LatestFrameCamera", return_value=camera), patch.object(WebcamConfig, "open_camera"), patch.object(monitor, "time", clock), patch.object(cv2, "namedWindow"), patch.object(cv2, "imshow") as show, patch.object(cv2, "waitKey", return_value=-1), patch.object(cv2, "getWindowProperty", return_value=1), patch.object(cv2, "destroyAllWindows") as destroy:
             if network_error:
                 with self.assertRaisesRegex(RuntimeError, "HTTP indisponível"):
                     monitor.run(config, "yolo", display=display)
@@ -144,15 +147,24 @@ class MonitorTests(unittest.TestCase):
                 self.assertEqual(event["confidence"], 0.73)
                 self.assertEqual(event["detection_type"], "bottle")
                 self.assertEqual(show.call_count, 5 if display else 0)
+                camera.read.assert_called_with(copy=bool(display))
+            self.assertEqual(writes.call_count, 2)
+            self.assertEqual(writes.call_args_list[0].args[1]["status"], "online")
+            self.assertEqual(writes.call_args_list[1].args[1]["status"], "offline")
+            self.assertEqual(writes.call_args_list[1].args[1]["detections"], 1)
             camera.close.assert_called_once()
             client.close.assert_called_once()
-            self.assertEqual(destroy.call_count, int(display))
+            self.assertEqual(destroy.call_count, int(bool(display)))
         self.assertEqual(json.loads((Path(directory) / "station.json").read_text())["status"], "offline")
         self.assertEqual(monitor.load_counts(counts_path)["bottle"], 1)
 
     def test_interval_crossing_and_headless_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
             self.run_monitor(directory)
+
+    def test_json_disables_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.run_monitor(directory, display=None)
 
     def test_preview_on_every_frame(self):
         with tempfile.TemporaryDirectory() as directory:

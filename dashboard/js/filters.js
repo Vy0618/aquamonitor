@@ -126,7 +126,11 @@ export function clearFilters(stationList, updateVisualization) {
     updateVisualization();
 }
 
-export function initializeFilterEvents(stationList, updateVisualization) {
+export function initializeFilterEvents(stationList, updateVisualization, onLocationChange = () => {}) {
+    const updateLocation = () => {
+        updateVisualization();
+        onLocationChange(filterStations(stationList));
+    };
     const stateFilter = document.getElementById("stateFilter");
     const cityFilter = document.getElementById("cityFilter");
     const districtFilter = document.getElementById("districtFilter");
@@ -136,32 +140,32 @@ export function initializeFilterEvents(stationList, updateVisualization) {
     if (stateFilter) {
         stateFilter.addEventListener("change", () => {
             updateCityFilter(stationList);
-            updateVisualization();
+            updateLocation();
         });
     }
 
     if (cityFilter) {
         cityFilter.addEventListener("change", () => {
             updateDistrictFilter(stationList);
-            updateVisualization();
+            updateLocation();
         });
     }
 
     if (districtFilter) {
-        districtFilter.addEventListener("change", updateVisualization);
+        districtFilter.addEventListener("change", updateLocation);
     }
 
     if (applyButton) {
         applyButton.addEventListener(
             "click",
-            () => applyFilters(updateVisualization)
+            () => applyFilters(updateLocation)
         );
     }
 
     if (clearButton) {
         clearButton.addEventListener(
             "click",
-            () => clearFilters(stationList, updateVisualization)
+            () => clearFilters(stationList, updateLocation)
         );
     }
 }

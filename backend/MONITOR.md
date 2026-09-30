@@ -61,3 +61,7 @@ python -m unittest discover -s backend/tests -v
 ```
 
 Os testes usam frames sintéticos e câmera/HTTP simulados para verificar os dois sistemas, agendamento, linha visível, contagem, persistência e encerramento. Para validar o equipamento, execute o monitor, confira a resolução real impressa, atravesse a linha com um resíduo nos dois sentidos e confirme uma contagem por track e o evento no backend. A taxa e a precisão finais precisam ser medidas na câmera e Raspberry Pi físicas.
+
+O documento `station.json` é atualizado apenas na inicialização e no encerramento
+do monitor, com status e total local. Os cruzamentos continuam salvando apenas
+o arquivo de contagens e enviando seus eventos à API.
