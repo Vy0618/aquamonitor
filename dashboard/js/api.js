@@ -1,4 +1,4 @@
-const api_url = "http://127.0.0.1:8000/api/stations";
+const api_url = "http://10.209.77.215:8000/api/stations";
 
 export async function fetchStations() {
     const controller = new AbortController();

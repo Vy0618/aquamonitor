@@ -1,5 +1,4 @@
 import { detectionTypeLabel } from "./labels.js";
-import { formatBottleDirections } from "./directions.js";
 import { fetchStations } from "./api.js";
 import { HEATMAP_CONFIG } from "./config.js";
 import { clearFilters, filterStations, initializeFilterEvents, initializeFilters, refreshFilters } from "./filters.js";
@@ -124,7 +123,6 @@ async function initializeMap() {
 }
 
 function updateDetectionDisplay(data, state = "loading") {
-    document.getElementById("bottleDirections").textContent = formatBottleDirections(data);
     const countEl = document.getElementById("detectionCount");
     const typesEl = document.getElementById("detectionTypes");
     const statusEl = document.getElementById("detectionStatus");
