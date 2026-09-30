@@ -31,6 +31,8 @@ header {
 .title { font-size: 13px; font-weight: 400; margin: 0; }
 .title::before { content: "> "; color: var(--accent); }
 .system-status { color: var(--muted); font-size: 11px; }
+.system-status { text-align: right; }
+.system-status--error { color: #f4d35e; }
 
 main {
     height: calc(100vh - 42px);
@@ -154,26 +156,19 @@ button:disabled, input:disabled { opacity: 0.5; cursor: wait; }
 .leaflet-popup-tip { background: var(--background); box-shadow: none; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--muted); }
 
-.station-marker { background: transparent; border: none; }
-.station-marker__pin {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    background: var(--background);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    line-height: 1;
-    cursor: pointer;
-}
-.station-marker__pin strong { font-size: 12px; font-weight: 400; }
-.station-marker__pin span { font-size: 10px; margin-top: 5px; color: var(--muted); }
+.station-marker { background: transparent; border: none; display: grid; place-items: center; }
+.station-dot { border: 1px solid var(--accent); border-radius: 50%; background: rgba(172, 209, 181, 0.2); }
+.station-marker--both .station-dot { background: transparent; border-color: #fff; }
+.station-marker--selected .station-dot { border: 2px solid #fff; outline: 1px solid #101211; outline-offset: 2px; }
+.leaflet-tooltip { background: var(--background); color: var(--text); border: 1px solid var(--border); border-radius: 0; box-shadow: none; font: inherit; }
+.map-legend { margin-top: 12px; color: var(--muted); font-size: 10px; }
+.map-legend p { margin: 8px 0 0; }
+.heat-legend-gradient { height: 8px; }
+.legend-labels { display: flex; justify-content: space-between; margin-top: 4px; }
 
 @media (max-width: 600px) {
     header { padding: 0 12px; gap: 8px; }
     main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 42%) minmax(0, 1fr); }
     aside { border-right: 0; border-bottom: 1px solid var(--border); padding: 16px; }
-    .system-status { font-size: 10px; }
+    .system-status { font-size: 10px; line-height: 1.2; }
 }

@@ -27,26 +27,37 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
-export function createMarker(station, onStationSelect) {
+export function markerDiameter(count, mode = "stations") {
+    if (mode === "both") return 12;
+    return Math.max(8, 48 * Math.sqrt(Math.min(Math.max(count, 0) / HEATMAP_CONFIG.referenceDetections, 1)));
+}
+
+export function createMarker(station, onStationSelect, mode = "stations", selected = false) {
     const longitude = Number(station.location.coordinates[0]);
     const latitude = Number(station.location.coordinates[1]);
     const summary = getDetectionSummary(station);
-    const count = Number(summary.total || 0);
+    const rawCount = Number(summary.total ?? station.detections ?? 0);
+    const count = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0;
+    const diameter = markerDiameter(count, mode);
+    const label = `Estação ${station.station_id}: ${count.toLocaleString("pt-BR")} detecções`;
     const types = Object.entries(summary.by_type || {})
         .map(([type, total]) => `${escapeHtml(detectionTypeLabel(type))}: ${(Number(total) || 0).toLocaleString("pt-BR")}`)
         .join(", ") || "Nenhuma detecção";
     const marker = L.marker([latitude, longitude], {
         autoPan: false,
+        title: label,
+        alt: label,
         icon: L.divIcon({
-            className: "station-marker",
-            html: `<div class="station-marker__pin" title="Estação ${escapeHtml(station.station_id)}">
-                <strong>E${escapeHtml(station.station_id)}</strong><span>${count.toLocaleString("pt-BR")}</span>
-            </div>`,
-            iconSize: [42, 42],
-            iconAnchor: [21, 21],
-            popupAnchor: [0, -22],
+            className: `station-marker station-marker--${mode}${selected ? " station-marker--selected" : ""}`,
+            html: `<div class="station-dot" style="width:${diameter}px;height:${diameter}px"></div>`,
+            iconSize: [Math.max(24, diameter), Math.max(24, diameter)],
+            iconAnchor: [Math.max(24, diameter) / 2, Math.max(24, diameter) / 2],
+            popupAnchor: [0, -diameter / 2],
         }),
     });
+
+    marker.bindTooltip(escapeHtml(label));
+    marker.stationId = station.station_id;
 
     marker.bindPopup(`
         <b>
@@ -70,48 +81,21 @@ export function createMarker(station, onStationSelect) {
     return marker;
 }
 
-export function updateMarkers(map, markerLayer, stationList, onStationSelect, selectedStationId) {
+export function updateMarkers(map, markerLayer, stationList, onStationSelect, selectedStationId, mode = "heat") {
+    const popupWasOpen = markerLayer.getLayers().some(marker => marker.isPopupOpen());
+    const previousSelected = markerLayer.getLayers().find(marker => marker.stationId === selectedStationId);
+    const selectionChanged = !previousSelected || !previousSelected.options.icon.options.className.includes("station-marker--selected");
     markerLayer.clearLayers();
-
-    stationList.forEach(station => {
-        const marker = createMarker(station, onStationSelect);
-        markerLayer.addLayer(marker);
-    });
-
-    updateMarkerVisibility(map, markerLayer);
-
-    // Reopen the popup for the previously selected station so it
-    // survives the layer refresh caused by polling / zoom updates.
-    if (selectedStationId != null) {
-        const station = stationList.find(s => s.station_id === selectedStationId);
-        if (station) {
-            const lat = Number(station.location.coordinates[1]);
-            const lng = Number(station.location.coordinates[0]);
-            const match = markerLayer.getLayers().find(m => {
-                const ll = m.getLatLng();
-                return Math.abs(ll.lat - lat) < 0.0001 && Math.abs(ll.lng - lng) < 0.0001;
-            });
-            if (match) {
-                match.openPopup();
-            }
-        }
-    }
-}
-
-export function updateMarkerVisibility(
-    map,
-    markerLayer,
-    config = HEATMAP_CONFIG
-) {
-    if (map.getZoom() >= config.markers.minZoom) {
-        if (!map.hasLayer(markerLayer)) {
-            markerLayer.addTo(map);
-        }
-
+    if (mode === "heat") {
+        if (map.hasLayer(markerLayer)) map.removeLayer(markerLayer);
         return;
     }
 
-    if (map.hasLayer(markerLayer)) {
-        map.removeLayer(markerLayer);
-    }
+    if (!map.hasLayer(markerLayer)) markerLayer.addTo(map);
+    stationList.forEach(station => {
+        const selected = station.station_id === selectedStationId;
+        const marker = createMarker(station, onStationSelect, mode, selected);
+        markerLayer.addLayer(marker);
+        if (selected && (popupWasOpen || selectionChanged)) marker.openPopup();
+    });
 }

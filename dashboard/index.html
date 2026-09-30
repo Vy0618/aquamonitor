@@ -16,8 +16,8 @@
 <body>
     <header>
         <h1 class="title">aqua monitor</h1>
-        <div class="system-status">
-            [ ON-LINE ]
+        <div class="system-status" id="systemStatus" role="status">
+            Conectando...
         </div>
     </header>
     <main>
@@ -56,6 +56,25 @@
                 <p class="ranking-note">5 maiores · todas as estações</p>
                 <ol id="cityRanking" class="city-ranking"></ol>
                 <p id="cityRankingStatus" class="ranking-note" role="status">Carregando classificação...</p>
+            </section>
+
+            <section class="filter-section" aria-labelledby="mapModeTitle">
+                <h3 id="mapModeTitle">Visualização do mapa</h3>
+                <label for="mapMode">Camadas</label>
+                <select id="mapMode" aria-describedby="mapLegend">
+                    <option value="heat">Calor</option>
+                    <option value="stations">Estações</option>
+                    <option value="both">Ambos</option>
+                </select>
+                <div id="mapLegend" class="map-legend">
+                    <div id="heatLegend">
+                        <div id="heatLegendGradient" class="heat-legend-gradient" aria-hidden="true"></div>
+                        <div class="legend-labels"><span>Menor volume</span><span>Maior volume</span></div>
+                        <p id="heatLegendReference"></p>
+                        <p>Contribuições próximas se somam. Estações sem detecções não geram calor.</p>
+                    </div>
+                    <p id="stationLegend" hidden></p>
+                </div>
             </section>
 
             <form id="stationSearchForm" class="filter-section">

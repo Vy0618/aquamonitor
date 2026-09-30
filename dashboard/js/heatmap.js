@@ -2,68 +2,22 @@ import { HEATMAP_CONFIG } from "./config.js";
 import { updateMarkers } from "./markers.js";
 
 export function getStationDetectionCount(station) {
-    return Number(station.detections || 0);
+    const count = Number(station.detection_summary?.total ?? station.detections ?? 0);
+    return Number.isFinite(count) && count > 0 ? count : 0;
 }
 
-export function calculateIntensity(
-    detections,
-    maxDetections,
-    zoom,
-    config = HEATMAP_CONFIG
-) {
-    if (zoom >= config.highZoom.minZoom) {
-        return Math.min(
-            detections / config.highZoom.maxDetections,
-            1
-        );
-    }
-
-    if (maxDetections <= 0) {
-        return 0;
-    }
-
-    return Math.log1p(detections) / Math.log1p(maxDetections);
+export function calculateIntensity(detections, config = HEATMAP_CONFIG) {
+    return Number.isFinite(detections) && detections > 0
+        ? detections / config.referenceDetections : 0;
 }
 
-export function calculateHeatRadius(zoom, config = HEATMAP_CONFIG) {
-    if (zoom <= 12) {
-        return config.radius.state;
-    }
-
-    if (zoom < 15) {
-        return config.radius.regional;
-    }
-
-    if (zoom <= config.municipal.maxZoom) {
-        return config.radius.neighborhood;
-    }
-
-    return config.radius.close;
-}
-
-export function buildHeatData(
-    stationList,
-    zoom,
-    config = HEATMAP_CONFIG
-) {
-    const maxDetections = Math.max(
-        0,
-        ...stationList.map(getStationDetectionCount)
-    );
-
-    const heatData = stationList.map(station => {
-        const longitude = Number(station.location.coordinates[0]);
-        const latitude = Number(station.location.coordinates[1]);
-        const detections = getStationDetectionCount(station);
-
-        return [
-            latitude,
-            longitude,
-            calculateIntensity(detections, maxDetections, zoom, config)
-        ];
-    });
-
-    return { heatData, maxDetections };
+export function buildHeatData(stationList, config = HEATMAP_CONFIG) {
+    return stationList.filter(station => getStationDetectionCount(station) > 0)
+        .map(station => {
+            const [longitude, latitude] = station.location.coordinates;
+            return [Number(latitude), Number(longitude),
+                calculateIntensity(getStationDetectionCount(station), config)];
+        });
 }
 
 export function createHeatmap(
@@ -71,16 +25,17 @@ export function createHeatmap(
     stationList,
     config = HEATMAP_CONFIG
 ) {
-    const zoom = map.getZoom();
-    const { heatData } = buildHeatData(stationList, zoom, config);
+    const heatData = buildHeatData(stationList, config);
 
     return L.heatLayer(
         heatData,
         {
-            radius: calculateHeatRadius(zoom, config),
+            radius: config.radius,
             blur: config.blur,
             maxZoom: config.maxZoom,
-            minOpacity: config.minOpacity
+            minOpacity: config.minOpacity,
+            max: 1,
+            gradient: config.gradient
         }
     ).addTo(map);
 }
@@ -95,12 +50,11 @@ export function updateHeatmap(
         return;
     }
 
-    const zoom = map.getZoom();
-    const { heatData } = buildHeatData(stationList, zoom, config);
+    const heatData = buildHeatData(stationList, config);
 
     heat.setLatLngs(heatData);
     heat.setOptions({
-        radius: calculateHeatRadius(zoom, config)
+        radius: config.radius
     });
 }
 
@@ -112,14 +66,18 @@ export function updateMap({
     filterStations,
     onStationSelect,
     selectedStationId,
-    config = HEATMAP_CONFIG
+    config = HEATMAP_CONFIG,
+    mode = "heat"
 }) {
     const filteredStations = filterStations(stations);
 
-    console.log("Estações exibidas:", filteredStations.length);
-
-    updateHeatmap(map, heat, filteredStations, config);
-    updateMarkers(map, markerLayer, filteredStations, onStationSelect, selectedStationId);
+    if (mode === "stations") {
+        if (map.hasLayer(heat)) map.removeLayer(heat);
+    } else {
+        updateHeatmap(map, heat, filteredStations, config);
+        if (!map.hasLayer(heat)) heat.addTo(map);
+    }
+    updateMarkers(map, markerLayer, filteredStations, onStationSelect, selectedStationId, mode);
 }
 
 export function initializeMapEvents(map, updateHeatmapOnly, updateZoomIndicator) {

@@ -1,32 +1,16 @@
-
-
 export const HEATMAP_CONFIG = {
-
-    minOpacity: 0.45,
-
-    blur: 25,
-
-    maxZoom: 18,
-
-    municipal: {
-        maxZoom: 16
-    },
-
-    highZoom: {
-        minZoom: 17,
-        maxDetections: 300
-    },
-
-    markers: {
-        minZoom: 12
-    },
-
-    radius: {
-        state: 25,
-        regional: 38,
-        neighborhood: 32,
-        close: 25
+    // Referência fixa: não muda com filtros ou ampliação.
+    referenceDetections: 300,
+    minOpacity: 0.01,
+    radius: 24,
+    blur: 16,
+    // Desativa a redução automática de intensidade em ampliações menores.
+    maxZoom: 0,
+    gradient: {
+        0.0: "#243b80",
+        0.25: "#287fc1",
+        0.5: "#43c6a2",
+        0.75: "#f4d35e",
+        1.0: "#ef553b"
     }
-
 };
-
