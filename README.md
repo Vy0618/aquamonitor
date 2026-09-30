@@ -10,6 +10,7 @@ O código da estação e do servidor está em `backend/`, mas sua execução é 
 - [Configuração](#configuração)
 - [Setup e testes locais](#setup-e-testes-locais)
 - [Setup e testes com a Raspberry Pi](#setup-e-testes-com-a-raspberry-pi)
+- [Controle dos serviços](#controle-dos-serviços)
 - [Comandos úteis e diagnóstico](#comandos-úteis-e-diagnóstico)
 
 ## Arquitetura
@@ -322,6 +323,90 @@ Também substitua `http://127.0.0.1:8000` pelo IP do computador em
 `dashboard/js/api.js`, `dashboard/js/detection-counter.js` e `dashboard/js/crud.js`.
 Depois abra `http://192.168.1.100:3000`. Mudar apenas o bind não altera o destino
 das requisições feitas pelo navegador.
+
+## Controle dos serviços
+
+Os comandos abaixo pressupõem unidades systemd já instaladas. Substitua o nome
+caso tenha usado outro: por exemplo, `dashboard.service` em vez de
+`aquamonitor-dashboard.service`. Confira as unidades disponíveis:
+
+```bash
+systemctl list-unit-files 'aquamonitor*' 'dashboard.service' 'mongod.service'
+```
+
+### Computador: API, dashboard e MongoDB
+
+```bash
+# Iniciar
+sudo systemctl start mongod.service aquamonitor-api.service aquamonitor-dashboard.service
+
+# Consultar o estado dos processos
+systemctl status mongod.service aquamonitor-api.service aquamonitor-dashboard.service --no-pager
+
+# Interromper API e dashboard
+sudo systemctl stop aquamonitor-api.service aquamonitor-dashboard.service
+
+# Interromper MongoDB, se não estiver sendo usado por outras aplicações
+sudo systemctl stop mongod.service
+
+# Reiniciar a API após atualizar código ou configuração do serviço
+sudo systemctl restart aquamonitor-api.service
+
+# Acompanhar logs da API; Ctrl+C sai da consulta sem parar o serviço
+sudo journalctl -u aquamonitor-api.service -f
+```
+
+Se você criou `aquamonitor.target` para agrupar os três serviços:
+
+```bash
+sudo systemctl start aquamonitor.target
+sudo systemctl stop aquamonitor.target
+sudo systemctl restart aquamonitor.target
+systemctl status aquamonitor.target --no-pager
+systemctl list-dependencies aquamonitor.target
+```
+
+Parar ou reiniciar o target só se propaga aos serviços se eles tiverem
+`PartOf=aquamonitor.target`. O target ativo não garante que todos os processos
+estejam funcionando: consulte também o estado individual dos serviços.
+
+### Raspberry Pi: monitor da câmera
+
+Para o serviço de captura chamado `aquamonitor.service`:
+
+```bash
+sudo systemctl start aquamonitor.service
+sudo systemctl stop aquamonitor.service
+sudo systemctl restart aquamonitor.service
+systemctl status aquamonitor.service --no-pager
+sudo journalctl -u aquamonitor.service -f
+```
+
+Pare esse serviço antes de iniciar o monitor manualmente, para evitar duas
+instâncias usando a mesma câmera.
+
+### Inicialização automática e alterações nas unidades
+
+```bash
+# Exemplo na Pi: iniciar agora e também nos próximos boots
+sudo systemctl enable --now aquamonitor.service
+
+# Parar e desabilitar a inicialização automática
+sudo systemctl disable --now aquamonitor.service
+
+# Após editar um arquivo .service ou um override
+sudo systemctl daemon-reload
+sudo systemctl restart aquamonitor.service
+
+# Mostrar a configuração efetiva e os logs do boot atual
+systemctl cat aquamonitor.service
+sudo journalctl -u aquamonitor.service -b --no-pager
+```
+
+No computador, use o nome da unidade correspondente. `stop` interrompe a execução
+atual, mas mantém a configuração de inicialização no boot. `daemon-reload` relê
+as unidades e não reinicia os processos sozinho. Alterações apenas no código ou
+em `aquamonitor.json` exigem reiniciar o processo, sem `daemon-reload`.
 
 ## Comandos úteis e diagnóstico
 
