@@ -871,10 +871,82 @@ atualize os destinos da estação e do JavaScript conforme o cenário.
 
 ## Controle dos serviços
 
-O setup manual acima não instala unidades systemd. Os comandos abaixo
-pressupõem unidades já instaladas. Substitua o nome
-caso tenha usado outro: por exemplo, `dashboard.service` em vez de
-`aquamonitor-dashboard.service`. Confira as unidades disponíveis:
+O repositório fornece unidades systemd em `deploy/systemd/` para iniciar
+PostgreSQL, API e dashboard com um comando. O reconhecimento da câmera continua
+manual. O setup manual das seções anteriores não instala essas unidades.
+
+### Instalar a inicialização conjunta nesta máquina
+
+As unidades fornecidas usam o usuário Linux `vyzxc`, a pasta
+`/home/vyzxc/aquamonitor` e o Python de `.venv/bin/python`. Em outra máquina,
+ajuste `User`, `WorkingDirectory`, `ExecStartPre` e `ExecStart` nos arquivos
+`.service`, além de `project_dir` e do usuário verificado em `install.sh`.
+
+Antes de instalar, a `.venv` deve conter `requirements-server.txt`, e o usuário
+PostgreSQL `aquamonitor_dev` deve poder acessar o banco **aquamonitor** e criar
+suas tabelas. Os serviços reutilizam o banco existente; não criam usuário ou
+banco e não executam instalações de dependências.
+
+A conexão fica no arquivo local `deploy/systemd/.env.api`, ignorado pelo Git.
+Ele já foi preparado nesta cópia com as credenciais informadas. Em um clone novo:
+
+```bash
+cp deploy/systemd/.env.example deploy/systemd/.env.api
+chmod 600 deploy/systemd/.env.api
+nano deploy/systemd/.env.api
+```
+
+Preencha `AQUAMONITOR_DATABASE_URL` com o usuário `aquamonitor_dev`, a senha real
+e o banco `aquamonitor`, conforme o modelo. O instalador copia esse arquivo
+para `/etc/aquamonitor/api.env`, com permissão `600`, somente na primeira
+instalação. Reinstalações preservam a configuração já existente nesse destino.
+
+Pare a API e o dashboard que estiverem abertos nos terminais, liberando as
+portas 8000 e 3000. A partir da raiz do projeto, instale e inicie:
+
+```bash
+sudo bash deploy/systemd/install.sh
+sudo systemctl start aquamonitor.target
+```
+
+Abra **http://127.0.0.1:3000/** para o dashboard e
+**http://127.0.0.1:8000/docs** para a API. Os serviços escutam somente nesta
+máquina, como no setup local. A câmera não é iniciada pelo target.
+
+A API aguarda uma conexão PostgreSQL válida por até 60 segundos antes de abrir
+o Uvicorn. A API e o dashboard reiniciam em caso de falha, com intervalo de cinco
+segundos. Seus processos executam como `vyzxc`, sem precisar ativar a `.venv`
+no terminal. A senha é carregada pelo systemd a partir de `api.env`.
+
+Nas próximas execuções, basta usar:
+
+```bash
+sudo systemctl start aquamonitor.target
+sudo systemctl stop aquamonitor.target
+sudo systemctl restart aquamonitor.target
+systemctl status aquamonitor-api.service aquamonitor-dashboard.service --no-pager
+sudo journalctl -u aquamonitor-api.service -u aquamonitor-dashboard.service -f
+```
+
+`stop aquamonitor.target` para API e dashboard e mantém o PostgreSQL disponível.
+Para parar também o banco, execute `sudo systemctl stop postgresql` depois.
+Para iniciar o conjunto automaticamente ao ligar o computador:
+
+```bash
+sudo systemctl enable --now aquamonitor.target
+```
+
+Para alterar credenciais depois da instalação, execute
+`sudoedit /etc/aquamonitor/api.env` e depois
+`sudo systemctl restart aquamonitor-api.service`. Para atualizar as unidades do
+repositório, rode novamente o instalador e reinicie o target. O instalador apenas
+grava as unidades e recarrega o systemd; não inicia os serviços nem habilita o
+boot automaticamente.
+
+### Conferir unidades disponíveis
+
+Os comandos seguintes também servem para instalações próprias. Substitua os
+nomes se usou outros, como `dashboard.service`. Confira as unidades disponíveis:
 
 ```bash
 systemctl list-unit-files 'aquamonitor*' 'dashboard.service' 'postgresql.service'
@@ -932,7 +1004,8 @@ que a rota da API respondeu. Quando a API é executada como serviço, use
 
 ### Máquina da estação: monitor da câmera
 
-Para o serviço de captura chamado `aquamonitor.service`:
+O target fornecido não inclui um serviço de câmera. Se você instalou por conta
+própria um serviço de captura chamado `aquamonitor.service`, use:
 
 ```bash
 sudo systemctl start aquamonitor.service

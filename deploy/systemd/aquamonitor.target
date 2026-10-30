@@ -1,0 +1,8 @@
+[Unit]
+Description=AquaMonitor (PostgreSQL, API e dashboard)
+Requires=postgresql.service
+Wants=aquamonitor-api.service aquamonitor-dashboard.service
+After=postgresql.service aquamonitor-api.service aquamonitor-dashboard.service
+
+[Install]
+WantedBy=multi-user.target

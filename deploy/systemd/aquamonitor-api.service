@@ -1,0 +1,22 @@
+[Unit]
+Description=AquaMonitor API (Uvicorn e PostgreSQL)
+Requires=postgresql.service
+After=network.target postgresql.service
+PartOf=aquamonitor.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+User=vyzxc
+WorkingDirectory=/home/vyzxc/aquamonitor
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/aquamonitor/api.env
+ExecStartPre=/home/vyzxc/aquamonitor/.venv/bin/python -m scripts.wait_database
+ExecStart=/home/vyzxc/aquamonitor/.venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=75
+TimeoutStopSec=30
+
+[Install]
+WantedBy=aquamonitor.target
