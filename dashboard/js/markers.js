@@ -28,8 +28,7 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
-export function markerDiameter(count, mode = "stations") {
-    if (mode === "both") return 12;
+export function markerDiameter(count) {
     return Math.max(8, 48 * Math.sqrt(Math.min(Math.max(count, 0) / HEATMAP_CONFIG.referenceDetections, 1)));
 }
 
@@ -39,7 +38,7 @@ export function createMarker(station, onStationSelect, mode = "stations", select
     const summary = getDetectionSummary(station);
     const rawCount = Number(summary.total ?? station.detections ?? 0);
     const count = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0;
-    const diameter = markerDiameter(count, mode);
+    const diameter = markerDiameter(count);
     const label = `Estação ${station.station_id}: ${count.toLocaleString("pt-BR")} detecções`;
     const types = Object.entries(summary.by_type || {})
         .map(([type, total]) => `${escapeHtml(detectionTypeLabel(type))}: ${(Number(total) || 0).toLocaleString("pt-BR")}`)

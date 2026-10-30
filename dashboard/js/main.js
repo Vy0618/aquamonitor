@@ -27,9 +27,8 @@ async function initializeMap() {
         document.getElementById("heatLegend").hidden = modeSelect.value === "stations";
         const stationLegend = document.getElementById("stationLegend");
         stationLegend.hidden = modeSelect.value === "heat";
-        stationLegend.textContent = modeSelect.value === "both"
-            ? "Anéis pequenos indicam as estações. Selecione um deles para consultar as detecções."
-            : `Área dos círculos proporcional às detecções, até ${reference}. Valores maiores atingem o tamanho máximo; valores baixos e zero usam o tamanho mínimo para seleção. Selecione para ver o total exato.`;
+        const shape = modeSelect.value === "both" ? "anéis" : "círculos";
+        stationLegend.textContent = `Área dos ${shape} proporcional às detecções, até ${reference}. Valores maiores atingem o tamanho máximo; valores baixos e zero usam o tamanho mínimo para seleção. Selecione para ver o total exato.`;
     }
     updateLegend();
     startUptime();

@@ -1,0 +1,7 @@
+fastapi>=0.141.0
+uvicorn>=0.52.0
+pydantic>=2.0.0
+psycopg[binary]>=3.2.0
+
+# Cliente usado pelos testes de integração da API (TestClient).
+httpx>=0.28.0

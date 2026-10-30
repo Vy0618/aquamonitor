@@ -1,5 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-.test-deps/
-data/

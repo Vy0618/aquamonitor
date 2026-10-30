@@ -1,9 +1,0 @@
-fastapi>=0.141.0
-uvicorn>=0.52.0
-pydantic>=2.0.0
-pymongo
-supervision==0.27.0
-lap==0.5.12
-cython-bbox==0.1.5
-numpy==1.26.4
--r backend/requirements-station.txt

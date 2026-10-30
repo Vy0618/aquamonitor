@@ -1,21 +1,24 @@
-"""API do Aqua Monitor: estações e eventos gerais de detecção."""
+"""API AquaMonitor com persistência relacional em PostgreSQL."""
 
 from datetime import UTC, datetime
+import os
 from typing import Literal
 
+import psycopg
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
+from psycopg.rows import dict_row
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-from pymongo import ASCENDING, DESCENDING, MongoClient
-from pymongo.errors import DuplicateKeyError
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-client = MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
-db = client["aquamonitor"]
-stations_collection = db["stations"]
-detection_events_collection = db["detection_events"]
+DATABASE_URL = os.getenv("AQUAMONITOR_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/aquamonitor")
+
+
+def connect_database():
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
 
 
 class DetectionPayload(BaseModel):
@@ -45,112 +48,132 @@ class DetectionPayload(BaseModel):
 
 
 @app.on_event("startup")
-def initialize_indexes() -> None:
-    """Mantém a ingestão idempotente e as consultas do painel rápidas."""
-    detection_events_collection.create_index([("event_id", ASCENDING)], name="unique_detection_event_id", unique=True)
-    detection_events_collection.create_index(
-        [("station_id", ASCENDING), ("detected_at", DESCENDING)], name="station_id_detected_at_desc"
-    )
+def initialize_database() -> None:
+    """Cria o esquema relacional necessário, preservando dados existentes."""
+    with connect_database() as connection:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS stations (
+                station_id BIGINT PRIMARY KEY CHECK (station_id > 0),
+                longitude DOUBLE PRECISION,
+                latitude DOUBLE PRECISION,
+                country TEXT,
+                state TEXT,
+                city TEXT,
+                district TEXT,
+                is_active BOOLEAN NOT NULL DEFAULT TRUE
+            )
+        """)
+        connection.execute("ALTER TABLE stations ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE")
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS detection_events (
+                event_id TEXT PRIMARY KEY,
+                station_id BIGINT NOT NULL REFERENCES stations(station_id),
+                detection_type VARCHAR(100) NOT NULL,
+                confidence DOUBLE PRECISION NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+                track_id BIGINT NOT NULL CHECK (track_id >= 0),
+                detected_at TIMESTAMPTZ NOT NULL,
+                direction TEXT CHECK (direction IN ('positive', 'negative') OR direction IS NULL)
+            )
+        """)
+        connection.execute("CREATE INDEX IF NOT EXISTS station_id_detected_at_desc ON detection_events (station_id, detected_at DESC)")
 
 
-def serialize_detection_summary(rows: list[dict]) -> dict:
-    by_type: dict[str, int] = {}
-    by_direction = {"positive": 0, "negative": 0, "unknown": 0}
-    by_type_direction: dict[str, dict[str, int]] = {}
-    last_detected_at: datetime | None = None
-    for row in rows:
-        detection_type = row["_id"]["detection_type"]
-        direction = row["_id"].get("direction")
-        if direction not in {"positive", "negative"}:
-            direction = "unknown"
-        by_type[detection_type] = by_type.get(detection_type, 0) + row["count"]
-        by_direction[direction] += row["count"]
-        type_directions = by_type_direction.setdefault(detection_type, {"positive": 0, "negative": 0, "unknown": 0})
-        type_directions[direction] += row["count"]
-        # Older documents may have stored an ISO string, while current
-        # documents store a BSON datetime. Normalize every value before
-        # ordering so BSON type precedence cannot choose the wrong timestamp.
-        values = row.get("detected_at_values", [row.get("last_detected_at")])
-        for value in values:
-            detected_at = normalize_detected_at(value)
-            if detected_at is not None and (
-                last_detected_at is None or detected_at > last_detected_at
-            ):
-                last_detected_at = detected_at
-    return {
-        "total": sum(by_type.values()),
-        "by_type": by_type,
-        "by_direction": by_direction,
-        "by_type_direction": by_type_direction,
-        "timestamp": last_detected_at.isoformat() if last_detected_at else None,
-    }
+def empty_summary() -> dict:
+    return {"total": 0, "by_type": {}, "by_direction": {"positive": 0, "negative": 0, "unknown": 0},
+            "by_type_direction": {}, "timestamp": None}
 
 
-def normalize_detected_at(value: object) -> datetime | None:
-    """Return an aware UTC datetime from legacy or current MongoDB values."""
-    if isinstance(value, datetime):
-        parsed = value
-    elif isinstance(value, str):
-        try:
-            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
-        except ValueError:
-            return None
+def _station_values(station: dict) -> tuple:
+    location = station.get("location") or {}
+    coordinates = location.get("coordinates") if isinstance(location, dict) else None
+    if not isinstance(coordinates, (list, tuple)) or len(coordinates) != 2:
+        longitude = latitude = None
     else:
-        return None
+        longitude, latitude = coordinates
+    administrative = station.get("administrative") or {}
+    if not isinstance(administrative, dict):
+        administrative = {}
+    return (longitude, latitude, administrative.get("country"), administrative.get("state"),
+            administrative.get("city"), administrative.get("district"))
 
-    # Legacy naive datetimes have no timezone metadata. Treat them as UTC,
-    # matching MongoDB's UTC datetime storage convention.
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        return parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
+
+def _location_response(station: dict) -> dict | None:
+    if station["longitude"] is None or station["latitude"] is None:
+        return None
+    return {"type": "Point", "coordinates": [station["longitude"], station["latitude"]]}
+
+
+def _administrative_response(station: dict) -> dict:
+    return {field: station[field] for field in ("country", "state", "city", "district") if station[field] is not None}
 
 
 def detection_summary_for_stations(station_id: int | None = None) -> dict[int, dict]:
-    pipeline = []
+    query = """SELECT station_id, detection_type, direction, COUNT(*) AS count, MAX(detected_at) AS last_detected_at
+               FROM detection_events"""
+    params: tuple = ()
     if station_id is not None:
-        pipeline.append({"$match": {"station_id": station_id}})
-    pipeline.append({"$group": {
-        "_id": {"station_id": "$station_id", "detection_type": "$detection_type", "direction": "$direction"},
-        "count": {"$sum": 1},
-        "detected_at_values": {"$push": "$detected_at"},
-    }})
-    grouped: dict[int, list[dict]] = {}
-    for row in detection_events_collection.aggregate(pipeline):
-        grouped.setdefault(row["_id"]["station_id"], []).append(row)
-    return {key: serialize_detection_summary(value) for key, value in grouped.items()}
+        query += " WHERE station_id = %s"
+        params = (station_id,)
+    query += " GROUP BY station_id, detection_type, direction"
+    summaries: dict[int, dict] = {}
+    with connect_database() as connection:
+        rows = connection.execute(query, params).fetchall()
+    for row in rows:
+        current = summaries.setdefault(row["station_id"], empty_summary())
+        kind = row["detection_type"]
+        direction = row["direction"] if row["direction"] in ("positive", "negative") else "unknown"
+        count = row["count"]
+        current["total"] += count
+        current["by_type"][kind] = current["by_type"].get(kind, 0) + count
+        current["by_direction"][direction] += count
+        by_type = current["by_type_direction"].setdefault(kind, {"positive": 0, "negative": 0, "unknown": 0})
+        by_type[direction] += count
+        timestamp = row["last_detected_at"].astimezone(UTC).isoformat()
+        if current["timestamp"] is None or timestamp > current["timestamp"]:
+            current["timestamp"] = timestamp
+    return summaries
 
 
 @app.post("/api/stations")
 def create_station(station: dict):
     station_id = station.get("station_id")
-    if not isinstance(station_id, int) or station_id <= 0:
+    if type(station_id) is not int or station_id <= 0:
         raise HTTPException(status_code=422, detail="station_id must be a positive integer")
-    if stations_collection.find_one({"station_id": station_id}) is not None:
-        raise HTTPException(status_code=409, detail="Station with this station_id already exists")
-    result = stations_collection.insert_one(station)
-    return {"message": "Station created successfully", "id": str(result.inserted_id)}
+    try:
+        with connect_database() as connection:
+            result = connection.execute(
+                """INSERT INTO stations (station_id, longitude, latitude, country, state, city, district, is_active)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE)
+                   ON CONFLICT (station_id) DO UPDATE SET longitude = EXCLUDED.longitude,
+                   latitude = EXCLUDED.latitude, country = EXCLUDED.country, state = EXCLUDED.state,
+                   city = EXCLUDED.city, district = EXCLUDED.district, is_active = TRUE
+                   WHERE stations.is_active = FALSE""",
+                (station_id, *_station_values(station)),
+            )
+            if result.rowcount == 0:
+                raise HTTPException(status_code=409, detail="Station with this station_id already exists")
+    except UniqueViolation as error:
+        raise HTTPException(status_code=409, detail="Station with this station_id already exists") from error
+    except HTTPException:
+        raise
+    return {"message": "Station created successfully", "id": str(station_id)}
 
 
 @app.get("/api/stations")
 def get_stations():
     summaries = detection_summary_for_stations()
-    result = []
-    for station in stations_collection.find():
-        summary = summaries.get(station["station_id"], serialize_detection_summary([]))
-        result.append({
-            "station_id": station["station_id"],
-            "location": station.get("location"),
-            "administrative": station.get("administrative"),
-            "detections": summary["total"],
-            "detection_summary": summary,
-        })
-    return result
+    with connect_database() as connection:
+        stations = connection.execute("SELECT * FROM stations WHERE is_active = TRUE ORDER BY station_id").fetchall()
+    return [{"station_id": station["station_id"], "location": _location_response(station),
+             "administrative": _administrative_response(station), "detections": summaries.get(station["station_id"], empty_summary())["total"],
+             "detection_summary": summaries.get(station["station_id"], empty_summary())} for station in stations]
 
 
 @app.delete("/api/stations/{station_id}")
 def delete_station(station_id: int):
-    result = stations_collection.delete_one({"station_id": station_id})
-    if result.deleted_count == 0:
+    with connect_database() as connection:
+        result = connection.execute("UPDATE stations SET is_active = FALSE WHERE station_id = %s AND is_active = TRUE", (station_id,))
+    if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Station not found")
     return {"message": "Station deleted successfully"}
 
@@ -158,23 +181,34 @@ def delete_station(station_id: int):
 @app.post("/api/detections", status_code=201)
 def ingest_detection(payload: DetectionPayload):
     """Armazena um cruzamento detectado pela estação embarcada."""
-    if stations_collection.find_one({"station_id": payload.station_id}) is None:
-        raise HTTPException(status_code=404, detail="Station not found")
     try:
-        result = detection_events_collection.insert_one(payload.model_dump())
-    except DuplicateKeyError as error:
+        with connect_database() as connection:
+            active_station = connection.execute(
+                "SELECT 1 FROM stations WHERE station_id = %s AND is_active = TRUE", (payload.station_id,)
+            ).fetchone()
+            if active_station is None:
+                raise HTTPException(status_code=404, detail="Station not found")
+            connection.execute(
+                """INSERT INTO detection_events
+                   (event_id, station_id, detection_type, confidence, track_id, detected_at, direction)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (payload.event_id, payload.station_id, payload.detection_type, payload.confidence,
+                 payload.track_id, payload.detected_at, payload.direction),
+            )
+    except UniqueViolation as error:
         raise HTTPException(status_code=409, detail="Detection event already exists") from error
-    return {
-        "message": "Detection ingested successfully", "id": str(result.inserted_id),
-        "event_id": payload.event_id, "station_id": payload.station_id,
-    }
+    except HTTPException:
+        raise
+    except ForeignKeyViolation as error:
+        raise HTTPException(status_code=404, detail="Station not found") from error
+    return {"message": "Detection ingested successfully", "id": payload.event_id,
+            "event_id": payload.event_id, "station_id": payload.station_id}
 
 
 @app.get("/api/stations/{station_id}/detections")
 def get_station_detections(station_id: int):
-    if stations_collection.find_one({"station_id": station_id}) is None:
+    with connect_database() as connection:
+        exists = connection.execute("SELECT 1 FROM stations WHERE station_id = %s AND is_active = TRUE", (station_id,)).fetchone()
+    if exists is None:
         raise HTTPException(status_code=404, detail="Station not found")
-    summary = detection_summary_for_stations(station_id).get(
-        station_id, serialize_detection_summary([])
-    )
-    return {"station_id": station_id, **summary}
+    return {"station_id": station_id, **detection_summary_for_stations(station_id).get(station_id, empty_summary())}

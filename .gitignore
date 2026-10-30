@@ -1,53 +1,77 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-
-# Virtual environment
-.venv/
+# Ambientes virtuais Python
+.venv*/
 venv/
 env/
+ENV/
+.tox/
+.nox/
 
-# Model weights and detection outputs (large files)
-best.pt
-runs/
+# Bytecode e caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.ipynb_checkpoints/
 
-# Ultralytics environment
-ultralytics-env/
+# Arquivos de testes e seus resultados
+tests/
+test/
+test_*.py
+*_test.py
+*.test.*
+*.spec.*
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+coverage/
+.junit.xml
+junit.xml
+.pytest-tmp/
 
-# Temporary files
-tmp/
+# Configurações locais e segredos
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.local.json
+
+# Estado local da estação e contagens geradas
+/backend/data/
+/backend/station/station.json
+
+# Saídas de detecção, capturas e dados locais PostgreSQL
+/runs/
+/captures/
+/recordings/
+/postgres-data/
+/pgdata/
+/.pgdata/
+/backups/
+*.dump
+*.sql.gz
+
+# Dependências e artefatos de build
+node_modules/
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs e arquivos temporários
+*.log
 *.tmp
+*.temp
 *.swp
 *.swo
 *~
 
-# Environment variables / secrets
-.env
-.env.*
-
-# IDE
+# Configurações de editor e arquivos do sistema
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# MongoDB local database files
-data/
-
-# Images (not part of codebase)
-*.jpg
-*.jpeg
-*.png
-
-
-# Test artifacts
-.pytest_cache/
-.coverage
-htmlcov/
+Desktop.ini

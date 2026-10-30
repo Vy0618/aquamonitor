@@ -72,10 +72,17 @@ export function updateMap({
     const filteredStations = filterStations(stations);
 
     if (mode === "stations") {
-        if (map.hasLayer(heat)) map.removeLayer(heat);
+        if (map.hasLayer(heat)) {
+            // Leaflet.heat does not cancel its pending redraw on removal.
+            // That callback would run after Leaflet clears the layer's map.
+            L.Util.cancelAnimFrame(heat._frame);
+            heat._frame = null;
+            map.removeLayer(heat);
+        }
     } else {
-        updateHeatmap(map, heat, filteredStations, config);
+        // Leaflet.heat redraws during setLatLngs/setOptions and needs an attached map.
         if (!map.hasLayer(heat)) heat.addTo(map);
+        updateHeatmap(map, heat, filteredStations, config);
     }
     updateMarkers(map, markerLayer, filteredStations, onStationSelect, selectedStationId, mode);
 }

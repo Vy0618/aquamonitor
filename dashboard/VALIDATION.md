@@ -8,20 +8,22 @@ node --test dashboard/tests/*.mjs
 ```
 
 Os testes simulam API, DOM e camadas do mapa. Não validam a aparência nem executam
-Leaflet em um navegador real. Para a verificação visual, inicie MongoDB, FastAPI e
+Leaflet em um navegador real. Para a verificação visual, inicie PostgreSQL, FastAPI e
 o servidor estático seguindo o [README](../README.md).
 
 ## Conferência manual
 
 1. Consulte `GET /api/stations`: cada estação deve conter `detection_summary`
-   (`total`, `by_type`, `timestamp`), com `detections` igual ao total. Coordenadas
+   (`total`, `by_type`, `by_direction`, `by_type_direction`, `timestamp`), com `detections` igual ao total. Coordenadas
    devem estar no formato `[longitude, latitude]`.
 2. Abra o painel: o modo inicial deve ser **Calor**. Estações zeradas não geram
    manchas. Compare contagens distintas; a referência fixa é 300, sem renormalizar
    ao filtrar. A sobreposição soma contribuições, portanto cores não representam
    uma contagem exata por estação.
 3. Alterne entre **Calor**, **Estações** e **Ambos**. Confira círculos proporcionais
-   no modo Estações, pequenos anéis no modo Ambos e legendas correspondentes.
+   no modo Estações e anéis com a mesma escala proporcional no modo Ambos,
+   com legendas correspondentes. Repita Estações → Ambos → Calor → Ambos,
+   aplique os filtros e confira que as duas camadas continuam atualizando.
 4. Busque um ID existente, inclusive de estação zerada: o mapa deve aproximá-la,
    permitir visualizar os detalhes e mostrar o ID junto ao total no painel.
    Teste também entrada vazia e ID inexistente.
@@ -45,7 +47,7 @@ o servidor estático seguindo o [README](../README.md).
     recarregar a página; não representa a atividade da estação.
 11. Com `tracking.direction: "both"`, atravesse a linha com uma garrafa de cima
     para baixo e depois com outra de baixo para cima: confira os incrementos em
-    **Positivo** e **Negativo**, respectivamente, no painel e popup. Cada track é
+    **Positivo** e **Negativo**, respectivamente, no popup da estação. Cada track é
     contado uma vez; voltar com o mesmo track não deve contar novamente. Eventos
     antigos aparecem em **Não informado**; eventos de outras classes não aumentam
     os contadores de sentido das garrafas. Confira `direction` nos novos eventos
@@ -59,5 +61,7 @@ curl --fail http://127.0.0.1:8000/api/stations/1/detections
 ```
 
 Ajuste o ID conforme o cadastro. O total é calculado a partir de eventos individuais
-em `detection_events`. Alterar `stations.detections` não produz novas contagens.
+na tabela PostgreSQL `detection_events`. A tabela `stations` não possui coluna
+`detections`; o total exibido é calculado pela API. Excluir uma estação a
+desativa sem apagar eventos; recadastrar o mesmo ID restaura seus totais.
 Os endpoints antigos `bottle-count` não existem nesta versão.

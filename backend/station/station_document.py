@@ -33,7 +33,6 @@ class StationDocument:
 
     def _base_document(self) -> dict[str, Any]:
         document = {
-            "_id": self.settings["_id"],
             "station_id": self.station_id,
             "detections": self.settings["detections"],
             "status": self.settings["status"],
@@ -48,6 +47,8 @@ class StationDocument:
             document = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
             raise RuntimeError(f"Documento da estação inválido em {self.path}: {error}") from error
+        if isinstance(document, dict):
+            document.pop("_id", None)  # Discard obsolete metadata from older local files.
         self._validate(document)
         return document
 
@@ -59,7 +60,7 @@ class StationDocument:
 
     @staticmethod
     def _validate(document: dict[str, Any]) -> None:
-        required = {"_id", "station_id", "detections", "status", "location", "administrative"}
+        required = {"station_id", "detections", "status", "location", "administrative"}
         if not isinstance(document, dict) or set(document) != required:
             raise RuntimeError("station.json deve conter exatamente os campos do documento da estação.")
         location = document["location"]

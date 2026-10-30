@@ -24,11 +24,17 @@ from backend.tracking.line_tracker import LineTracker
 BASE_DIR = Path(__file__).resolve().parents[1]
 from backend.settings import CONFIG_FILE, load_config
 COUNTS_FILE = BASE_DIR / "data" / "contagem_residuos.json"
+COUNT_CATEGORIES = (*EXPECTED_CLASSES, "testes")
+
+
+def count_category(class_name: str) -> str:
+    """Group selected non-waste objects only after tracking their real class."""
+    return class_name if class_name in EXPECTED_CLASSES else "testes"
 
 
 
 def load_counts(path: Path) -> dict[str, int]:
-    counts = dict.fromkeys(EXPECTED_CLASSES, 0)
+    counts = dict.fromkeys(COUNT_CATEGORIES, 0)
     if not path.exists():
         return counts
     try:
@@ -68,7 +74,7 @@ def tracker_for_frame(frame, settings: dict) -> LineTracker:
     )
 
 
-def draw_overlay(frame, detections, tracker: LineTracker, counts: dict[str, int]) -> None:
+def draw_overlay(frame, detections, tracker: LineTracker, counts: dict[str, int], testes: bool = False) -> None:
     height, width = frame.shape[:2]
     for detection in detections:
         x1, y1, x2, y2 = detection.bbox
@@ -79,8 +85,9 @@ def draw_overlay(frame, detections, tracker: LineTracker, counts: dict[str, int]
     line_y = min(height - 1, max(0, tracker.line_y))
     for color, thickness in (((0, 0, 0), 5), ((0, 255, 255), 2)):
         cv2.line(frame, (0, line_y), (width - 1, line_y), color, thickness)
-    for row, name in enumerate(EXPECTED_CLASSES, start=1):
-        cv2.putText(frame, f"{name}: {counts[name]}", (8, row * 21),
+    categories = COUNT_CATEGORIES if testes else EXPECTED_CLASSES
+    for row, name in enumerate(categories, start=1):
+        cv2.putText(frame, f"{name}: {counts.get(name, 0)}", (8, row * 21),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
 
@@ -106,7 +113,7 @@ def create_detector(config: dict, name: str):
     )
 
 
-def run(config: dict, detector_name: str, display: bool | None = None) -> None:
+def run(config: dict, detector_name: str, display: bool | None = None, testes: bool = False) -> None:
     if display is None:
         display = config.get("display", {}).get("enabled", True)
     processing = config.get("image_processing", {"enabled": False})
@@ -157,9 +164,11 @@ def run(config: dict, detector_name: str, display: bool | None = None) -> None:
                     detections = restore_coordinates(
                         detector.detect(processed), processed.shape, frame.shape
                     )
+                    if not testes:
+                        detections = [item for item in detections if item.class_name in EXPECTED_CLASSES]
                     crossings = tracker.update(detections)
                     for crossing in crossings:
-                        counts[crossing.class_name] += 1
+                        counts[count_category(crossing.class_name)] += 1
                     if crossings:
                         save_counts(COUNTS_FILE, station_id, counts)
                     for crossing in crossings:
@@ -167,15 +176,15 @@ def run(config: dict, detector_name: str, display: bool | None = None) -> None:
                             raise RuntimeError("Backend lento: limite de 32 envios pendentes atingido. Verifique a conexão.")
                         event = {
                             "event_id": str(uuid.uuid4()), "station_id": station_id,
-                            "detection_type": crossing.class_name, "confidence": crossing.confidence,
+                            "detection_type": count_category(crossing.class_name), "confidence": crossing.confidence,
                             "track_id": crossing.track_id,
                             "direction": crossing.direction,
                             "detected_at": datetime.now(timezone.utc).isoformat(),
                         }
                         pending.append(sender.submit(client.send_detection, event))
-                        print(f"Contado: {crossing.class_name} (track #{crossing.track_id})")
+                        print(f"Contado: {count_category(crossing.class_name)} ({crossing.class_name}, track #{crossing.track_id})")
                 if display:
-                    draw_overlay(frame, detections, tracker, counts)
+                    draw_overlay(frame, detections, tracker, counts, testes=testes)
                     cv2.imshow(window, frame)
                     if cv2.waitKey(1) & 0xFF in (ord("q"), 27):
                         break
@@ -193,12 +202,14 @@ def main(default_detector: str = "yolo") -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=CONFIG_FILE)
     parser.add_argument("--detector", choices=("yolo", "ssd"), default=default_detector)
+    parser.add_argument("--testes", action="store_true",
+                        help="Habilita o contador testes para classes selecionadas fora dos resíduos.")
     preview = parser.add_mutually_exclusive_group()
     preview.add_argument("--display", dest="display", action="store_true", help="Exibe vídeo, sobrescrevendo o JSON.")
     preview.add_argument("--no-display", dest="display", action="store_false", help="Executa sem janela; encerre com Ctrl+C.")
     parser.set_defaults(display=None)
     args = parser.parse_args()
-    run(load_config(args.config), args.detector, display=args.display)
+    run(load_config(args.config), args.detector, display=args.display, testes=args.testes)
 
 
 if __name__ == "__main__":
