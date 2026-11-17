@@ -283,7 +283,7 @@ Somente a API conecta ao banco; a estação e o dashboard usam HTTP.
 |---|---|
 | Variável da API | `AQUAMONITOR_DATABASE_URL` |
 | URL padrão, se a variável estiver ausente | `postgresql://postgres:postgres@localhost:5432/aquamonitor` |
-| Banco do roteiro manual de testes | `aquamonitor_local_test` (separado do padrão `aquamonitor`) |
+| Banco do roteiro manual de testes | `aquamonitor_test` (separado do padrão `aquamonitor`) |
 | Porta usada nos exemplos | `5432` |
 | Carregamento de configuração | Ambiente do processo da API; não lê `aquamonitor.json` nem carrega `.env` automaticamente |
 | Extensão geográfica | PostGIS não é necessário; coordenadas ficam em colunas numéricas |
@@ -319,6 +319,19 @@ Windows, criação de um banco novo, conferência dos totais e conexão da API e
 dashboard. Importe antes de iniciar a API nesse banco e use um destino vazio.
 A importação já contém as estações e os eventos: não repita o cadastro da etapa
 6 nem a geração de eventos para obter os dados de demonstração.
+
+O arquivo é `data/demo/aquamonitor_test.sql` e o banco de destino dos comandos
+é `aquamonitor_test`. Após criar o usuário e esse banco vazio, importe na raiz:
+
+```bash
+psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
+```
+
+Faça isso antes de iniciar a API, pois ela cria tabelas no startup. Se optar pela
+base de demonstração, siga o tutorial de importação em vez de recriar o banco
+nas etapas seguintes. O nome do arquivo SQL não seleciona o banco; `-d` define
+o destino. A exportação não cria usuários nem configura senhas.
+
 
 ## Migração do MongoDB para PostgreSQL
 
@@ -466,7 +479,7 @@ Para o teste interativo com API, navegador e câmera, use um banco dedicado:
 ```bash
 sudo systemctl start postgresql
 sudo -u postgres createuser --pwprompt aquamonitor_dev
-sudo -u postgres createdb --owner=aquamonitor_dev aquamonitor_local_test
+sudo -u postgres createdb --owner=aquamonitor_dev aquamonitor_test
 ```
 
 Esses comandos são para a primeira criação. Se o usuário e o banco de testes já
@@ -485,7 +498,7 @@ sudo systemctl start postgresql
 systemctl status postgresql --no-pager
 ```
 
-O usuário `aquamonitor_dev`, o banco `aquamonitor_local_test` e seus dados
+O usuário `aquamonitor_dev`, o banco `aquamonitor_test` e seus dados
 permanecem salvos entre as execuções. Não repita `createuser` ou `createdb`.
 Se o serviço já estiver ativo, o comando `start` mantém sua execução.
 
@@ -498,12 +511,12 @@ dashboard.
 ```bash
 cd ~/aquamonitor
 source .venv/bin/activate
-export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_local_test'
+export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test'
 psql "$AQUAMONITOR_DATABASE_URL" -c 'SELECT current_database(), current_user;'
 python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
-Confirme que `psql` mostrou **aquamonitor_local_test**. Mantenha o Uvicorn aberto;
+Confirme que `psql` mostrou **aquamonitor_test**. Mantenha o Uvicorn aberto;
 a API cria as tabelas e os índices no startup. Abra **http://127.0.0.1:8000/docs**.
 O export precisa estar no terminal que inicia a API; `.env` e `aquamonitor.json`
 não configuram sua conexão PostgreSQL. Reinicie a API após mudar a variável.
@@ -653,7 +666,7 @@ No Windows, instale o servidor PostgreSQL e suas ferramentas de linha de comando
 testes da etapa 4. Em cada novo terminal, ative a venv. No terminal da API:
 
 ```powershell
-$env:AQUAMONITOR_DATABASE_URL="postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_local_test"
+$env:AQUAMONITOR_DATABASE_URL="postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test"
 python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
@@ -724,13 +737,13 @@ instale também as bibliotecas OpenCV do setup local e mantenha os modelos em
 `backend/detection/models/`. A disponibilidade dos testes automatizados está
 descrita na etapa 3 do [setup local](#setup-e-testes-locais).
 
-Prepare o usuário `aquamonitor_dev` e o banco `aquamonitor_local_test` conforme a
+Prepare o usuário `aquamonitor_dev` e o banco `aquamonitor_test` conforme a
 etapa 4 do setup local. No **terminal 1 de A**, inicie a API na rede:
 
 ```bash
 cd ~/aquamonitor
 source .venv/bin/activate
-export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_local_test'
+export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test'
 psql "$AQUAMONITOR_DATABASE_URL" -c 'SELECT current_database(), current_user;'
 python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000
 ```
@@ -898,9 +911,9 @@ manual. O setup manual das seções anteriores não instala essas unidades.
 
 O target `aquamonitor-backend.target` inicia PostgreSQL e API, sem abrir o
 servidor do dashboard. A API aguarda uma conexão válida com o banco por até
-60 segundos e reinicia após falhas. A configuração local `.env.api` desta
-máquina foi preparada com a mesma conexão da API manual (`aquamonitor_local_test`).
-Ela é ignorada pelo Git; em outro clone, prepare-a conforme a seção abaixo.
+60 segundos e reinicia após falhas. Configure `.env.api` com a mesma conexão
+usada na API manual, apontando para `aquamonitor_test`. Esse arquivo é ignorado
+pelo Git; prepare-o conforme a seção abaixo.
 
 Encerre a API manual com Ctrl+C no terminal do Uvicorn para liberar a porta 8000.
 Depois execute na raiz do projeto:
@@ -939,8 +952,8 @@ uma `.venv` criada nessa máquina e execute o instalador pelo usuário da aplica
 
 Antes de instalar, a `.venv` deve conter `requirements.txt`, e o usuário
 PostgreSQL configurado deve poder acessar o banco escolhido e criar suas
-tabelas. Pode ser `aquamonitor_local_test`, `aquamonitor_import_test` ou
-`aquamonitor`, conforme a conexão selecionada. Os serviços reutilizam o banco existente; não criam usuário ou
+tabelas. O banco usado neste roteiro é `aquamonitor_test`, tanto na importação
+quanto na execução manual e no service. Os serviços reutilizam o banco existente; não criam usuário ou
 banco e não executam instalações de dependências.
 
 A conexão fica no arquivo local `deploy/systemd/.env.api`, ignorado pelo Git.

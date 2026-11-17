@@ -50,7 +50,7 @@ a esse banco até concluir a importação.
 3. Crie um banco novo para a importação:
 
    ```bash
-   sudo -u postgres createdb --owner=aquamonitor_dev aquamonitor_import_test
+   sudo -u postgres createdb --owner=aquamonitor_dev aquamonitor_test
    ```
 
    Se esse nome já existir, escolha outro nome e use-o em todos os comandos
@@ -59,7 +59,7 @@ a esse banco até concluir a importação.
 4. Importe o SQL; informe a senha do usuário quando solicitado:
 
    ```bash
-   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_import_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
+   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
    ```
 
    `ON_ERROR_STOP` interrompe ao primeiro erro e `--single-transaction` desfaz
@@ -69,8 +69,8 @@ a esse banco até concluir a importação.
 5. Confira os registros:
 
    ```bash
-   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_import_test -c "SELECT (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM detection_events) AS detections;"
-   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_import_test -c "SELECT station_id, COUNT(*) AS total FROM detection_events GROUP BY station_id ORDER BY station_id;"
+   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test -c "SELECT (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM detection_events) AS detections;"
+   psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test -c "SELECT station_id, COUNT(*) AS total FROM detection_events GROUP BY station_id ORDER BY station_id;"
    ```
 
    O primeiro comando deve retornar **10 estações e 428 detecções**. O segundo
@@ -83,13 +83,28 @@ Caracteres reservados na senha devem ser codificados na URI, conforme o README
 principal. A variável precisa estar no mesmo terminal que inicia o Uvicorn:
 
 ```bash
-export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_import_test'
+export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test'
 python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
 Se a API anterior estiver na porta 8000, encerre-a antes de iniciar a nova.
-Para serviços systemd, configure essa conexão no `EnvironmentFile` da API e
-reinicie o serviço; o `export` no terminal não altera um serviço existente.
+Para a primeira instalação do service, configure essa mesma URL em
+`deploy/systemd/.env.api`, criado a partir de `deploy/systemd/.env.example`.
+Se o service já estiver instalado, edite a configuração efetivamente carregada:
+
+```bash
+sudoedit /etc/aquamonitor/api.env
+```
+
+Defina a senha real e o mesmo banco usado na importação:
+
+```dotenv
+AQUAMONITOR_DATABASE_URL=postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test
+```
+
+Depois execute `sudo systemctl restart aquamonitor-api.service`.
+O `export` no terminal não altera um serviço existente e reinstalar as unidades
+preserva o arquivo `/etc/aquamonitor/api.env`.
 
 Em outro terminal:
 
@@ -112,16 +127,16 @@ Instale PostgreSQL 16 com as ferramentas de linha de comando, adicione sua pasta
 ```powershell
 psql --version
 createuser -h 127.0.0.1 -U postgres --pwprompt aquamonitor_dev
-createdb -h 127.0.0.1 -U postgres --owner=aquamonitor_dev aquamonitor_import_test
-psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_import_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
-psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_import_test -c "SELECT (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM detection_events) AS detections;"
+createdb -h 127.0.0.1 -U postgres --owner=aquamonitor_dev aquamonitor_test
+psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
+psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test -c "SELECT (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM detection_events) AS detections;"
 ```
 
 Pule `createuser` se o usuário já existir. Use um nome novo se o banco já existir.
 Com a venv ativa, inicie a API no mesmo PowerShell em que definir a variável:
 
 ```powershell
-$env:AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_import_test'
+$env:AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_test'
 python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
