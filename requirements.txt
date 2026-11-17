@@ -1,0 +1,24 @@
+# Dependências Python do AquaMonitor: API, estação SSD/YOLO e cliente de testes.
+# Instalação: python -m pip install -r requirements.txt
+# Requer Python 3.11+ e wheels compatíveis com a arquitetura da máquina.
+# Pacotes de sistema Debian/Ubuntu (instalar com apt, não com pip):
+# sudo apt install python3 python3-venv python3-pip postgresql postgresql-client libgl1 libglib2.0-0 curl
+# A estação remota não precisa do servidor/cliente PostgreSQL.
+
+# API PostgreSQL e cliente HTTP dos testes de integração.
+fastapi>=0.141.0
+uvicorn>=0.52.0
+pydantic>=2.0.0
+psycopg[binary]>=3.2.0
+
+httpx>=0.28.0
+
+# PyTorch CPU: mesma seleção para Linux x86_64 e Linux ARM64.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.10.0+cpu
+torchvision==0.25.0+cpu
+
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+requests>=2.31.0
+numpy>=1.24.0

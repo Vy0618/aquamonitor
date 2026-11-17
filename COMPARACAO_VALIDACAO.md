@@ -62,13 +62,10 @@ paralelo. O `ssd_mobilenet.nms_threshold` também foi retirado do exemplo: o
 adaptador SSD preservado não o consultava. A publicação principal continua
 obrigatória por cruzamento e sem reenvio automático, como na referência.
 
-As dependências estão organizadas em dois arquivos independentes na raiz:
-
-- `requirements-server.txt`: API PostgreSQL e `httpx` para seus testes de integração.
-- `requirements-cv.txt`: estação SSD/YOLO, captura, processamento e comunicação HTTP.
-
-Para instalar servidor e estação ou executar a suíte completa, instale ambos.
-Os testes PostgreSQL isolados precisam somente do arquivo do servidor. Os
+As dependências Python estão reunidas no `requirements.txt` da raiz: API
+PostgreSQL, `httpx`, estação SSD/YOLO, captura, processamento e comunicação HTTP.
+Use `python -m pip install -r requirements.txt` no servidor e na estação.
+Os pacotes de sistema são instalados separadamente, conforme o README. Os
 resultados de validação abaixo registram o ambiente utilizado na revisão da
 limpeza; o teste do adaptador YOLO simula a inferência real.
 

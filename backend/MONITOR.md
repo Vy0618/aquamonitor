@@ -1,6 +1,6 @@
 # Monitor embarcado AquaMonitor
 
-Código da estação para Windows e Linux (incluindo Raspberry Pi OS **64 bits**), Python 3.10 ou superior e câmera USB compatível com OpenCV. Use uma sessão gráfica para visualizar o vídeo; por SSH/servidor use `--no-display`. Câmeras CSI que só expõem libcamera/Picamera2 não são suportadas por este capturador USB.
+Código da estação para Windows e Linux (incluindo Raspberry Pi OS **64 bits**), Python 3.11 ou superior e câmera USB compatível com OpenCV. Use uma sessão gráfica para visualizar o vídeo; por SSH/servidor use `--no-display`. Câmeras CSI que só expõem libcamera/Picamera2 não são suportadas por este capturador USB.
 
 ## Instalação
 
@@ -10,7 +10,7 @@ Windows (PowerShell):
 
 ```powershell
 py -3 -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements-cv.txt
+.venv/Scripts/python.exe -m pip install -r requirements.txt
 .venv/Scripts/python.exe -m backend.monitoring.monitor_residuos
 ```
 
@@ -20,7 +20,7 @@ Linux / Raspberry Pi OS:
 sudo apt update
 sudo apt install python3-venv python3-pip libgl1 libglib2.0-0 curl
 python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements-cv.txt
+.venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python -m backend.monitoring.monitor_residuos
 ```
 
@@ -103,3 +103,10 @@ python -m backend.monitoring.monitor_residuos --detector ssd --display --testes
 O argumento também funciona com `--detector yolo` e nos atalhos SSD. Sem ele,
 objetos fora das cinco classes de resíduos não são rastreados nem contabilizados,
 e o contador `testes` não aparece na prévia. O histórico salvo é preservado.
+
+## Inicialização automática na Raspberry Pi
+
+Use `sudo bash deploy/systemd/install.sh --camera` após configurar
+`deploy/systemd/.env.camera` a partir de `camera.env.example`.
+O serviço executa sem janela e pode iniciar no boot. Veja os comandos e
+pré-requisitos na seção [Câmera automática na Raspberry Pi](../README.md#câmera-automática-na-raspberry-pi).

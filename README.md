@@ -78,8 +78,7 @@ cada requisição tem timeout de dez segundos.
 | `backend/monitoring/` | Comandos de execução do monitor SSD/YOLO |
 | `backend/communication/` | Cliente HTTP usado pelo monitor |
 | `backend/station/` | Documento local da estação e sua persistência |
-| `requirements-system.txt` | Pacotes Debian/Ubuntu para servidor e estação na mesma máquina |
-| `requirements-server.txt`, `requirements-cv.txt` | Dependências Python da API e da estação |
+| `requirements.txt` | Dependências Python da API e da estação; comentários com os pré-requisitos de sistema |
 | `dashboard/` | HTML, CSS e JavaScript; Leaflet, mapa, filtros e cadastro de estações |
 
 Os pesos ficam em `backend/detection/models/`. O SSD usa `.pb`, `.pbtxt` e
@@ -277,7 +276,7 @@ serviam apenas ao pipeline paralelo. Não há opção `--publish`.
 ## Banco de dados PostgreSQL
 
 O servidor usa `psycopg` 3, instalado por `psycopg[binary]>=3.2.0` em
-`requirements-server.txt`. MongoDB e PyMongo não são dependências da API atual.
+`requirements.txt`. MongoDB e PyMongo não são dependências da API atual.
 Somente a API conecta ao banco; a estação e o dashboard usam HTTP.
 
 | Configuração | Valor ou comportamento |
@@ -361,7 +360,7 @@ fluxo de execução e validada antes de apontar a API para a base de destino.
 Neste roteiro, PostgreSQL, API, câmera e navegador ficam no **mesmo computador**.
 Use uma cópia de desenvolvimento do projeto e um banco exclusivo para testes.
 Os comandos abaixo usam Bash em Debian/Ubuntu e devem ser executados na pasta
-que contém `aquamonitor.json`, os arquivos `requirements-*.txt`, `backend/` e
+que contém `aquamonitor.json`, o arquivo `requirements.txt`, `backend/` e
 `dashboard/`.
 Ajuste `~/aquamonitor` ao caminho da sua cópia.
 
@@ -379,14 +378,13 @@ python3 --version
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements-server.txt -r requirements-cv.txt
+python -m pip install -r requirements.txt
 python -m pip check
 ```
 
-| Arquivo | Quando instalar |
+| Arquivo | Conteúdo |
 |---|---|
-| `requirements-server.txt` | API PostgreSQL e cliente HTTP dos testes de integração; dashboard usa a biblioteca padrão do Python |
-| `requirements-cv.txt` | Estação: câmera, SSD/YOLO, processamento de imagem e comunicação HTTP, sem componentes da API |
+| `requirements.txt` | Dependências Python da API PostgreSQL, cliente HTTP de testes e estação SSD/YOLO; dashboard usa a biblioteca padrão do Python |
 
 O servidor PostgreSQL não é um pacote Python: `pip install` instala o driver
 `psycopg[binary]`, mas não instala o banco nem o comando `psql`. Os pacotes
@@ -394,12 +392,10 @@ O servidor PostgreSQL não é um pacote Python: `pip install` instala o driver
 `postgresql-client` (`psql`, `createuser`, `createdb`) são instalados pelo `apt`
 no primeiro comando acima. A criação do usuário e do banco continua na etapa 4.
 
-A lista completa de pacotes de sistema desse setup está em
-[`requirements-system.txt`](requirements-system.txt). Em Debian/Ubuntu, também
-é possível instalar essa lista com `xargs -r -a requirements-system.txt sudo apt install --`
-após `sudo apt update`. Esse arquivo não deve ser passado ao `pip`.
-Para máquinas separadas, use os subconjuntos da seção de setup entre máquinas;
-a estação não precisa instalar PostgreSQL.
+Os pacotes de sistema estão listados em comentários no `requirements.txt` e no
+comando `apt` acima. Eles devem ser instalados pelo sistema operacional; o `pip`
+instala somente as dependências Python. Para máquinas separadas, siga os comandos
+`apt` da seção de setup entre máquinas; a estação não precisa instalar PostgreSQL.
 
 Outros recursos necessários além dos pacotes Python:
 
@@ -413,10 +409,10 @@ Outros recursos necessários além dos pacotes Python:
 | systemd | Somente para a instalação opcional dos serviços em `deploy/systemd/` |
 | Node.js 22+ | Somente para a suíte JavaScript, caso seus arquivos sejam disponibilizados; não é necessário para servir o dashboard |
 
-Os dois arquivos Python ficam na raiz e são independentes. Para servidor e estação
-na mesma máquina, instale ambos como no comando acima. Para executar apenas a
-API, basta o arquivo do servidor. `requirements-cv.txt` inclui Ultralytics e suas dependências de
-inferência, mesmo quando os testes simulam os resultados do YOLO. O mesmo arquivo
+O `requirements.txt` na raiz reúne as dependências Python do servidor e da
+estação. Use o mesmo arquivo em ambas as máquinas, mesmo quando executar apenas
+um dos componentes. Ele inclui Ultralytics e suas dependências de inferência,
+mesmo quando os testes simulam os resultados do YOLO. O arquivo
 fixa PyTorch `2.10.0+cpu` e Torchvision `0.25.0+cpu`, obtidos do índice oficial
 CPU, para evitar instalar CUDA/cuDNN tanto no computador Linux x86_64 quanto na
 estação Linux ARM64. Não é preciso um requirements diferente por máquina.
@@ -647,7 +643,7 @@ No PowerShell, a preparação equivalente é:
 cd C:\caminho\para\aquamonitor
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install -r requirements-server.txt -r requirements-cv.txt
+python -m pip install -r requirements.txt
 python -m pip check
 ```
 
@@ -687,8 +683,8 @@ navegador opcional em outro dispositivo. Substitua o IP pelo endereço real de A
 
 | Máquina | Executa | Instalação Python | Destino que utiliza |
 |---|---|---|---|
-| A — servidor | PostgreSQL, API e servidor estático | `requirements-server.txt` | API conecta ao PostgreSQL local |
-| B — estação | Câmera, SSD/YOLO, rastreador e envio HTTP | `requirements-cv.txt` | `http://192.168.1.100:8000` |
+| A — servidor | PostgreSQL, API e servidor estático | `requirements.txt` | API conecta ao PostgreSQL local |
+| B — estação | Câmera, SSD/YOLO, rastreador e envio HTTP | `requirements.txt` | `http://192.168.1.100:8000` |
 | A — navegador local | Dashboard no próprio servidor | Nenhum pacote adicional | JavaScript consulta `http://127.0.0.1:8000` |
 | C — navegador remoto, opcional | Dashboard no navegador | Nenhum Python necessário | JavaScript consulta `http://192.168.1.100:8000` |
 
@@ -717,15 +713,15 @@ sudo apt install python3-venv python3-pip postgresql postgresql-client curl
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements-server.txt
+python -m pip install -r requirements.txt
 python -m pip check
 hostname -I
 ```
 
-A não precisa instalar os modelos, OpenCV ou Ultralytics para servir apenas a
-API e o painel. Para executar também o monitor em A, instale
-`requirements-cv.txt`, as bibliotecas OpenCV do setup local e mantenha os modelos
-em `backend/detection/models/`. A disponibilidade dos testes automatizados está
+A instalação unificada inclui OpenCV e Ultralytics também no servidor. Os modelos
+e a câmera só são usados ao executar o monitor. Para executar o monitor em A,
+instale também as bibliotecas OpenCV do setup local e mantenha os modelos em
+`backend/detection/models/`. A disponibilidade dos testes automatizados está
 descrita na etapa 3 do [setup local](#setup-e-testes-locais).
 
 Prepare o usuário `aquamonitor_dev` e o banco `aquamonitor_local_test` conforme a
@@ -803,7 +799,7 @@ sudo apt install python3-venv python3-pip libgl1 libglib2.0-0 curl
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r requirements-cv.txt
+python -m pip install -r requirements.txt
 python -m pip check
 ls -lh backend/detection/models/
 export AQUADETECTOR_API_URL=http://192.168.1.100:8000
@@ -822,10 +818,11 @@ USB usa OpenCV/V4L2; não tem capturador próprio Picamera2/libcamera. A precis�
 e o desempenho na Pi física não foram validados nesta revisão.
 
 Para uma estação Windows, use a preparação PowerShell do setup local instalando
-apenas `requirements-cv.txt`. Defina
+o `requirements.txt`. Defina
 `$env:AQUADETECTOR_API_URL="http://192.168.1.100:8000"` e
 `$env:BOTTLE_COUNT_STATION_ID="1"` no terminal do monitor. Não é necessário
-instalar PostgreSQL, FastAPI ou Uvicorn em B para executar a estação.
+instalar o servidor PostgreSQL em B para executar a estação; FastAPI e Uvicorn
+serão instalados como parte do arquivo unificado.
 
 ### 5. Em B — conferir configuração e iniciar a câmera
 
@@ -940,7 +937,7 @@ O instalador detecta a raiz do clone e o usuário que executou `sudo`, e ajusta
 `User`, `WorkingDirectory` e os caminhos Python nas unidades instaladas. Use
 uma `.venv` criada nessa máquina e execute o instalador pelo usuário da aplicação.
 
-Antes de instalar, a `.venv` deve conter `requirements-server.txt`, e o usuário
+Antes de instalar, a `.venv` deve conter `requirements.txt`, e o usuário
 PostgreSQL configurado deve poder acessar o banco escolhido e criar suas
 tabelas. Pode ser `aquamonitor_local_test`, `aquamonitor_import_test` ou
 `aquamonitor`, conforme a conexão selecionada. Os serviços reutilizam o banco existente; não criam usuário ou
@@ -1142,7 +1139,7 @@ psql "$AQUAMONITOR_DATABASE_URL" -c 'SELECT station_id, COUNT(*) AS total, MAX(d
 | `permission denied for schema` ou tabelas ausentes | Conferir proprietário/permissões do banco e logs do startup que cria as tabelas |
 | `relation` ou coluna ausente após reutilizar banco antigo | Comparar o esquema com `initialize_database()`; `CREATE TABLE IF NOT EXISTS` não atualiza todas as colunas de tabelas preexistentes |
 | `ModuleNotFoundError: backend` ou `aquamonitorPH` | Executar a partir da raiz com os comandos `python -m` deste README e usar a versão atual dos testes, cujos imports começam por `backend` |
-| `ModuleNotFoundError: psycopg` | Ativar a `.venv` correta e instalar `requirements-server.txt` |
+| `ModuleNotFoundError: psycopg` | Ativar a `.venv` correta e instalar `requirements.txt` |
 | Conexão recusada ou timeout HTTP | IP real do computador, API ativa na porta 8000, rede e firewall |
 | Estação não encontrada | Cadastrar o mesmo `station_id`; arquivos JSON locais não criam cadastro |
 | Qt/Wayland ao abrir janela | Executar o monitor com `--no-display` ou usar sessão gráfica compatível |
@@ -1222,3 +1219,55 @@ O documento local `backend/station/station.json` é gravado somente ao iniciar
 Não há gravação desse documento a cada cruzamento. Uma interrupção abrupta ou
 queda de energia pode impedir a atualização final. O arquivo de contagens
 `backend/data/contagem_residuos.json` continua sendo salvo nos cruzamentos.
+
+
+## Câmera automática na Raspberry Pi
+
+O serviço `aquamonitor-camera.service` executa o monitor USB sem janela, separado
+dos targets do servidor. Use Raspberry Pi OS 64 bits com systemd, câmera USB e
+uma `.venv` preparada com `python -m pip install -r requirements.txt`.
+Execute os comandos na raiz do clone, na própria Pi, usando o usuário da estação:
+
+```bash
+cp deploy/systemd/camera.env.example deploy/systemd/.env.camera
+chmod 600 deploy/systemd/.env.camera
+nano deploy/systemd/.env.camera
+sudo bash deploy/systemd/install.sh --camera
+sudo systemctl start aquamonitor-camera.service
+systemctl status aquamonitor-camera.service --no-pager
+sudo journalctl -u aquamonitor-camera.service -f
+```
+
+Configure o IP real da API em `AQUADETECTOR_API_URL`, o ID previamente cadastrado
+em `BOTTLE_COUNT_STATION_ID` e `AQUAMONITOR_DETECTOR=yolo` ou `ssd`.
+A API remota deve escutar na rede e permitir acesso da Pi. Os serviços de servidor
+fornecidos escutam em `127.0.0.1` por padrão; ajuste o bind do Uvicorn no servidor
+para `0.0.0.0` conforme o setup entre máquinas antes de conectar a Pi.
+Resolução, índice da câmera, modelos e linha de contagem vêm do `aquamonitor.json`.
+O serviço força `--no-display` e mantém o contador de testes desativado.
+
+O instalador ajusta usuário e caminho, fornece acesso ao grupo `video` e preserva
+`/etc/aquamonitor/camera.env` nas reinstalações. Não exige PostgreSQL local,
+não instala os serviços do servidor, não inicia a câmera nem habilita o boot.
+Pare qualquer monitor manual antes de iniciar o serviço, para liberar a câmera.
+
+Para iniciar automaticamente ao ligar a Pi:
+
+```bash
+sudo systemctl enable --now aquamonitor-camera.service
+```
+
+Para parar ou desativar o início automático:
+
+```bash
+sudo systemctl stop aquamonitor-camera.service
+sudo systemctl disable aquamonitor-camera.service
+```
+
+Para alterar a configuração depois da instalação, use
+`sudoedit /etc/aquamonitor/camera.env` e
+`sudo systemctl restart aquamonitor-camera.service`.
+Falhas de câmera, rede ou API provocam nova tentativa após dez segundos.
+O encerramento envia SIGINT para salvar o estado local e aguardar os envios,
+com limite de sessenta segundos. Eventos que falharam não são reenviados
+automaticamente; o reinício do serviço não recupera essas detecções.

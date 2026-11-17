@@ -1,9 +1,0 @@
-# Dependências Python da API. O servidor PostgreSQL e o cliente psql são
-# instalados pelo sistema operacional; veja requirements-system.txt e README.md.
-fastapi>=0.141.0
-uvicorn>=0.52.0
-pydantic>=2.0.0
-psycopg[binary]>=3.2.0
-
-# Cliente para testes de integração com TestClient, quando disponíveis.
-httpx>=0.28.0

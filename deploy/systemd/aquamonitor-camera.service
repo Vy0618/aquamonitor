@@ -1,0 +1,22 @@
+[Unit]
+Description=AquaMonitor camera e reconhecimento (Raspberry Pi)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+User=projetos-maker
+SupplementaryGroups=video
+WorkingDirectory=/home/projetos-maker/aquamonitor
+Environment=PYTHONUNBUFFERED=1
+Environment=AQUAMONITOR_DETECTOR=yolo
+EnvironmentFile=-/etc/aquamonitor/camera.env
+ExecStart=/home/projetos-maker/aquamonitor/.venv/bin/python -m backend.monitoring.monitor_residuos --detector ${AQUAMONITOR_DETECTOR} --no-display
+Restart=on-failure
+RestartSec=10
+KillSignal=SIGINT
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

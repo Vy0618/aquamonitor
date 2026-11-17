@@ -2,8 +2,11 @@
 # Instala os servicos; nao inicia processos nem altera o banco de dados.
 set -euo pipefail
 
+if [[ $# -eq 1 && "$1" == --camera ]]; then
+    exec bash "$(dirname -- "${BASH_SOURCE[0]}")/install-camera.sh"
+fi
 if [[ $# -ne 0 ]]; then
-    echo 'Uso: sudo bash deploy/systemd/install.sh' >&2
+    echo 'Uso: sudo bash deploy/systemd/install.sh [--camera]' >&2
     exit 2
 fi
 if [[ $EUID -ne 0 ]]; then

@@ -23,7 +23,7 @@ class YoloDetector:
         try:
             from ultralytics import YOLO
         except ImportError as error:
-            raise RuntimeError("Instale: python -m pip install -r requirements-cv.txt") from error
+            raise RuntimeError("Instale: python -m pip install -r requirements.txt") from error
 
         model_file = Path(model_path)
         if not model_file.is_file():
