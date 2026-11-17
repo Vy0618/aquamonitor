@@ -1,0 +1,58 @@
+# Integração manual: execute as etapas do backend e dashboard no computador, em terminais separados; na Raspberry Pi, preencha IP_BACKEND e execute o reconhecimento com estação 1.
+
+cd ~/aquamonitor
+sudo apt update
+sudo apt install python3-venv python3-pip postgresql postgresql-client libgl1 libglib2.0-0 curl
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip check
+sudo systemctl start postgresql
+
+sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
+SELECT 'CREATE ROLE aquamonitor_dev LOGIN'
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'aquamonitor_dev')
+\gexec
+ALTER ROLE aquamonitor_dev WITH LOGIN PASSWORD '12345678';
+SQL
+
+sudo -u postgres createdb --owner=aquamonitor_dev aquamonitor_test &&
+PGPASSWORD='12345678' psql -X -h 127.0.0.1 -U aquamonitor_dev -d aquamonitor_test --set=ON_ERROR_STOP=1 --single-transaction --file=data/demo/aquamonitor_test.sql
+
+cd ~/aquamonitor
+source .venv/bin/activate
+export AQUAMONITOR_DATABASE_URL='postgresql://aquamonitor_dev:12345678@127.0.0.1:5432/aquamonitor_test'
+psql "$AQUAMONITOR_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'SELECT current_database(), current_user; SELECT (SELECT COUNT(*) FROM stations) AS stations, (SELECT COUNT(*) FROM detection_events) AS detections; SELECT station_id, is_active FROM stations WHERE station_id = 1;' &&
+python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000
+
+cd ~/aquamonitor
+source .venv/bin/activate
+curl --fail-with-body http://127.0.0.1:8000/api/stations &&
+python serve_dashboard.py --bind 0.0.0.0 --port 3000
+
+hostname -I
+
+cd ~/aquamonitor
+uname -m
+python3 --version
+sudo apt update
+sudo apt install python3-venv python3-pip libgl1 libglib2.0-0 curl
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip check
+ls -lh backend/detection/models/
+
+cd ~/aquamonitor
+source .venv/bin/activate
+
+IP_BACKEND=""
+
+: "${IP_BACKEND:?Preencha IP_BACKEND com o IP do computador backend}"
+export AQUADETECTOR_API_URL="http://${IP_BACKEND}:8000"
+export BOTTLE_COUNT_STATION_ID=1
+
+curl --fail-with-body --max-time 10 "$AQUADETECTOR_API_URL/api/stations/1/detections" &&
+python -m backend.monitoring.monitor_residuos --detector yolo --no-display
