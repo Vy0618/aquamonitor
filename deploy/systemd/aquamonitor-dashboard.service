@@ -6,10 +6,10 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=exec
-User=vyzxc
-WorkingDirectory=/home/vyzxc/aquamonitor
+User=projetos-maker
+WorkingDirectory=/home/projetos-maker/aquamonitor
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/vyzxc/aquamonitor/.venv/bin/python /home/vyzxc/aquamonitor/serve_dashboard.py --bind 127.0.0.1 --port 3000
+ExecStart=/home/projetos-maker/aquamonitor/.venv/bin/python /home/projetos-maker/aquamonitor/serve_dashboard.py --bind 127.0.0.1 --port 3000
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15

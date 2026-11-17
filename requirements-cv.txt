@@ -1,3 +1,5 @@
+# Dependências Python da estação. No Linux, instale também libgl1 e
+# libglib2.0-0 pelo sistema operacional; veja README.md.
 # PyTorch CPU: mesma seleção para Linux x86_64 e Linux ARM64.
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.10.0+cpu

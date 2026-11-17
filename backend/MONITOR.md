@@ -17,6 +17,8 @@ py -3 -m venv .venv
 Linux / Raspberry Pi OS:
 
 ```bash
+sudo apt update
+sudo apt install python3-venv python3-pip libgl1 libglib2.0-0 curl
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-cv.txt
 .venv/bin/python -m backend.monitoring.monitor_residuos
@@ -56,11 +58,9 @@ Os arquivos de contagem e estação usam substituição atômica. Contagens inv�
 
 ## Verificação
 
-```bash
-python -m unittest discover -s backend/tests -v
-```
-
-Os testes usam frames sintéticos e câmera/HTTP simulados para verificar os dois sistemas, agendamento, linha visível, contagem, persistência e encerramento. Para validar o equipamento, execute o monitor, confira a resolução real impressa, atravesse a linha com um resíduo nos dois sentidos e confirme uma contagem por track e o evento no backend. A taxa e a precisão finais precisam ser medidas na câmera e Raspberry Pi físicas.
+Os arquivos da suíte automatizada não estão presentes nesta cópia; veja o
+[setup local](../README.md#setup-e-testes-locais) para conferir dependências e
+validar a API com um banco de testes. Para validar o equipamento, execute o monitor, confira a resolução real impressa, atravesse a linha com um resíduo nos dois sentidos e confirme uma contagem por track e o evento no backend. A taxa e a precisão finais precisam ser medidas na câmera e Raspberry Pi físicas.
 
 O documento `station.json` é atualizado apenas na inicialização e no encerramento
 do monitor, com status e total local. Os cruzamentos continuam salvando apenas
@@ -76,7 +76,7 @@ atalhos SSD chamam essa mesma função; não há outra implementação em `Embed
 `backend/detection/types.py`.
 
 O monitor não conecta ao banco. A API persiste os eventos no PostgreSQL; confira
-a instalação e os testes SQL isolados no [README](../README.md). A configuração
+a instalação e a validação manual no [README](../README.md). A configuração
 de exemplo aponta para localhost; ajuste `AQUADETECTOR_API_URL` quando o servidor
 estiver em outra máquina. Os campos do pipeline paralelo ByteTrack foram
 removidos: cada cruzamento continua sendo publicado automaticamente.

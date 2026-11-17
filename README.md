@@ -4,14 +4,34 @@ Protótipo de visão computacional para detectar garrafas, contar cruzamentos de
 uma linha e enviar os eventos para um computador com API, PostgreSQL e dashboard.
 O código da estação e do servidor está em `backend/`, mas sua execução é separada.
 
+## Início rápido: backend e banco de dados
+
+Com os serviços já instalados, inicie PostgreSQL e a API juntos:
+
+```bash
+sudo systemctl start aquamonitor-backend.target
+```
+
+O comando normalmente não exibe mensagem quando funciona. Confira o estado:
+
+```bash
+systemctl status aquamonitor-api.service postgresql.service --no-pager
+```
+
+A API deve mostrar `active (running)`. Esse target inicia apenas o banco e o
+backend. Para instalar os serviços ou consultar os demais comandos, veja
+[Controle dos serviços](#controle-dos-serviços).
+
 ## Sumário
 
+- [Início rápido: backend e banco de dados](#início-rápido-backend-e-banco-de-dados)
 - [Arquitetura](#arquitetura)
 - [Contador de testes](#contador-de-testes)
 - [Dashboard](#dashboard)
 - [Limitações atuais](#limitações-atuais)
 - [Configuração](#configuração)
 - [Banco de dados PostgreSQL](#banco-de-dados-postgresql)
+- [Banco de demonstração: exportação e importação](#banco-de-demonstração-exportação-e-importação)
 - [Migração do MongoDB para PostgreSQL](#migração-do-mongodb-para-postgresql)
 - [Setup e testes locais](#setup-e-testes-locais)
 - [Setup e testes entre máquinas](#setup-e-testes-entre-máquinas)
@@ -58,7 +78,8 @@ cada requisição tem timeout de dez segundos.
 | `backend/monitoring/` | Comandos de execução do monitor SSD/YOLO |
 | `backend/communication/` | Cliente HTTP usado pelo monitor |
 | `backend/station/` | Documento local da estação e sua persistência |
-| `backend/tests/`, `backend/test_*.py` | Testes do monitor, configuração, publicação e API |
+| `requirements-system.txt` | Pacotes Debian/Ubuntu para servidor e estação na mesma máquina |
+| `requirements-server.txt`, `requirements-cv.txt` | Dependências Python da API e da estação |
 | `dashboard/` | HTML, CSS e JavaScript; Leaflet, mapa, filtros e cadastro de estações |
 
 Os pesos ficam em `backend/detection/models/`. O SSD usa `.pb`, `.pbtxt` e
@@ -130,6 +151,11 @@ O total exibido no dashboard vem dos eventos recebidos, não desses arquivos.
 
 Interface em português brasileiro, estilo terminal, sem etapa de compilação.
 O servidor HTTP entrega os arquivos; a API fornece os dados do PostgreSQL.
+
+O HTML fixa Leaflet em `1.9.4` e Leaflet.heat em `0.2.0`, compatíveis com o
+carregamento por scripts e a função `L.heatLayer`. Preserve a versão na URL do
+Leaflet.heat: a versão `1.0.1` distribuída sem versão explícita usa módulos e
+não funciona com esse carregamento. Após atualizar, use Ctrl+Shift+R.
 
 - **Busca por ID:** centraliza a estação, abre seus detalhes e muda de Calor para
   Ambos quando necessário. Limpa filtros de localidade que ocultem o resultado.
@@ -281,6 +307,20 @@ como documentos no banco. Os resumos usam `COUNT(*)` e `MAX(detected_at)` sobre
 os eventos, com horários retornados em UTC. `direction = NULL` aparece como
 `unknown` nos resumos. Não há tabela de totais acumulados.
 
+## Banco de demonstração: exportação e importação
+
+O repositório inclui [data/demo/aquamonitor_test.sql](data/demo/aquamonitor_test.sql),
+uma exportação PostgreSQL 16 com **10 estações e 428 detecções sintéticas**.
+Cinco estações ficam na Baía de Santos e têm de 1 a 200 eventos cada; as outras
+cinco, na região de Campinas, estão zeradas. O arquivo inclui esquema, dados,
+índices e restrições, sem credenciais, roles, proprietário ou permissões.
+
+Consulte o [tutorial de importação](data/demo/README.md) para Debian/Ubuntu e
+Windows, criação de um banco novo, conferência dos totais e conexão da API e do
+dashboard. Importe antes de iniciar a API nesse banco e use um destino vazio.
+A importação já contém as estações e os eventos: não repita o cadastro da etapa
+6 nem a geração de eventos para obter os dados de demonstração.
+
 ## Migração do MongoDB para PostgreSQL
 
 A mudança da conexão não importa coleções antigas. Esta árvore não fornece um
@@ -334,7 +374,7 @@ e à arquitetura da máquina.
 ```bash
 cd ~/aquamonitor
 sudo apt update
-sudo apt install python3-venv python3-pip libgl1 libglib2.0-0 curl
+sudo apt install python3-venv python3-pip postgresql postgresql-client libgl1 libglib2.0-0 curl
 python3 --version
 python3 -m venv .venv
 source .venv/bin/activate
@@ -348,10 +388,34 @@ python -m pip check
 | `requirements-server.txt` | API PostgreSQL e cliente HTTP dos testes de integração; dashboard usa a biblioteca padrão do Python |
 | `requirements-cv.txt` | Estação: câmera, SSD/YOLO, processamento de imagem e comunicação HTTP, sem componentes da API |
 
-Os dois arquivos ficam na raiz e são independentes. Para servidor e estação na
-mesma máquina, ou para a suíte completa de testes, instale ambos como no comando
-acima. Para testar apenas a API com PostgreSQL descartável, basta o arquivo do
-servidor. `requirements-cv.txt` inclui Ultralytics e suas dependências de
+O servidor PostgreSQL não é um pacote Python: `pip install` instala o driver
+`psycopg[binary]`, mas não instala o banco nem o comando `psql`. Os pacotes
+`postgresql` (servidor e ferramentas como `initdb`/`pg_ctl`) e
+`postgresql-client` (`psql`, `createuser`, `createdb`) são instalados pelo `apt`
+no primeiro comando acima. A criação do usuário e do banco continua na etapa 4.
+
+A lista completa de pacotes de sistema desse setup está em
+[`requirements-system.txt`](requirements-system.txt). Em Debian/Ubuntu, também
+é possível instalar essa lista com `xargs -r -a requirements-system.txt sudo apt install --`
+após `sudo apt update`. Esse arquivo não deve ser passado ao `pip`.
+Para máquinas separadas, use os subconjuntos da seção de setup entre máquinas;
+a estação não precisa instalar PostgreSQL.
+
+Outros recursos necessários além dos pacotes Python:
+
+| Recurso | Quando é necessário |
+|---|---|
+| Python 3.11+ para API; Python compatível com os wheels CPU para estação | Antes de criar a venv; confira `python3 --version` |
+| `libgl1` e `libglib2.0-0` | OpenCV no Linux, inclusive quando se usa o pacote com suporte a janela |
+| Câmera USB e permissão de acesso; sessão gráfica para `--display` | Execução do monitor; `--no-display` dispensa a sessão gráfica |
+| Pesos SSD/YOLO em `backend/detection/models/` | Inferência; os quatro arquivos dos modelos estão incluídos nesta árvore |
+| Navegador e internet para unpkg e OpenStreetMap | Dashboard: Leaflet, Leaflet.heat e mosaicos do mapa são externos |
+| systemd | Somente para a instalação opcional dos serviços em `deploy/systemd/` |
+| Node.js 22+ | Somente para a suíte JavaScript, caso seus arquivos sejam disponibilizados; não é necessário para servir o dashboard |
+
+Os dois arquivos Python ficam na raiz e são independentes. Para servidor e estação
+na mesma máquina, instale ambos como no comando acima. Para executar apenas a
+API, basta o arquivo do servidor. `requirements-cv.txt` inclui Ultralytics e suas dependências de
 inferência, mesmo quando os testes simulam os resultados do YOLO. O mesmo arquivo
 fixa PyTorch `2.10.0+cpu` e Torchvision `0.25.0+cpu`, obtidos do índice oficial
 CPU, para evitar instalar CUDA/cuDNN tanto no computador Linux x86_64 quanto na
@@ -366,79 +430,42 @@ validação do modelo real na Raspberry Pi.
 Execute os comandos a partir da raiz `aquamonitor/`, onde está este README.
 Os imports internos usam o pacote `backend`, sem prefixos `aquamonitorPH` ou
 `comparacao`. Inicie o monitor com `python -m backend.monitoring.monitor_residuos`
-e os testes com `python -m unittest`; não execute os arquivos internos diretamente
-por caminho. Ative `.venv` em cada terminal que executar Python.
+e não execute os arquivos internos diretamente por caminho. Ative `.venv` em cada terminal que executar Python.
 
 MongoDB, PyMongo,
 Supervision e ByteTrack não fazem parte deste setup. Não há compilação do
 dashboard, `npm install` ou instalação separada de TensorFlow para o SSD.
 
-### 2. Executar os testes antes de iniciar os serviços
+### 2. Conferir as dependências antes de iniciar os serviços
+
+Com a venv ativa:
 
 ```bash
-python -m unittest discover -s backend -t . -v
+python -m pip check
+python -c "import fastapi, uvicorn, pydantic, psycopg, httpx, cv2, numpy, requests, torch, torchvision, ultralytics; print('Dependências Python disponíveis')"
+psql --version
 ```
 
-Essa execução não abre câmera nem conecta ao banco da aplicação. Na validação
-das alterações, passaram **41 testes unitários**; os **12 testes PostgreSQL**
-são ignorados nessa execução e executados na próxima etapa. Os testes cobrem
-contrato dos eventos, configuração, linha e sentidos, associação de confiança
-ao objeto, envio, contagens locais e encerramento. Incluem o argumento `--testes`,
-a ausência de contagem de celulares sem ele, o agrupamento de objetos de teste
-nos dois modos e a preservação de classes distintas durante o rastreamento.
-Um teste carrega o SSD real com imagem sintética. O adaptador YOLO usa resultados simulados; os
-pesos reais e a precisão na câmera precisam do teste manual ao final.
+Essas verificações não abrem a câmera nem modificam o banco. Elas conferem
+consistência das dependências e disponibilidade dos módulos e do cliente SQL;
+não comprovam conexão PostgreSQL, precisão do detector ou integração completa.
 
-Para o dashboard, com Node.js 22 ou superior:
+### 3. Disponibilidade dos testes automatizados
 
-```bash
-node --test dashboard/tests/*.mjs
-```
+Esta cópia não contém `backend/tests/`, `backend/test_*.py`,
+`dashboard/tests/` nem `scripts/test_postgresql.py`. Os resultados de testes
+registrados em `COMPARACAO_VALIDACAO.md` são históricos e não representam uma
+suíte disponível para execução nesta árvore. A descoberta de testes sem esses
+arquivos pode terminar com zero testes, sem validar o projeto.
 
-Na validação das correções do dashboard, passaram **7 testes**. Eles verificam
-filtros, atualização da API, intensidade do calor, escala proporcional dos
-marcadores nos dois modos e troca de camadas com cancelamento de desenhos
-pendentes. Node.js é necessário apenas para os testes; o painel é servido pelo
-Python.
-
-Também foi validado em navegador real com Leaflet e 50 estações simuladas:
-trocas normais e rápidas de camadas, filtro por município, busca de estação
-oculta pelo filtro e atualização automática. Os anéis de Ambos mantiveram os
-mesmos tamanhos de Estações, sem erros de JavaScript. Essa verificação usou
-respostas simuladas da API; a integração com banco e câmera segue as etapas
-abaixo. Consulte o [roteiro do dashboard](dashboard/VALIDATION.md) para repetir
-a conferência manual.
-
-### 3. Validar a API com PostgreSQL descartável
-
-Instale os binários de servidor e cliente PostgreSQL:
-
-```bash
-sudo apt install postgresql postgresql-client
-ls /usr/lib/postgresql/
-python scripts/test_postgresql.py --pg-bin /usr/lib/postgresql/16/bin
-```
-
-Troque `16` pela versão instalada. Se `initdb` e `pg_ctl` já estiverem no `PATH`,
-use apenas `python scripts/test_postgresql.py`. Execute como **usuário comum**,
-com a venv ativa; `initdb` não aceita execução como root.
-
-O runner cria seu próprio cluster em diretório temporário, sem escuta TCP, e
-usa somente um socket Unix exclusivo. Ele ignora as variáveis de conexão
-herdadas, cria `aquamonitor_test`, executa os testes e encerra/remove esse cluster.
-Não exige que o serviço PostgreSQL do sistema esteja ativo. **Não passe uma URL
-de banco existente nem inicie o Uvicorn para esta etapa.**
-
-Na validação após a correção dos imports, passaram **12 testes de integração**,
-com HTTP via ASGI
-`TestClient` e SQL real: persistência, duplicação inclusive concorrente, resumos
-por classe/sentido, horários com fuso, restrições, reinicialização e
-exclusão/reativação de estações. Esse runner usa Linux/Unix.
+Não há runner de PostgreSQL descartável disponível nesta cópia. Para validar
+a instalação atual, siga as etapas 4 a 10 com um banco separado de testes,
+incluindo ingestão e duplicação sem câmera na etapa 8. Não use uma base de
+produção para essa conferência.
 
 ### 4. Criar um banco separado para o teste manual
 
-O cluster da etapa anterior é removido ao terminar e não alimenta o dashboard.
-Para o teste interativo com API, navegador e câmera, use outro banco dedicado:
+Para o teste interativo com API, navegador e câmera, use um banco dedicado:
 
 ```bash
 sudo systemctl start postgresql
@@ -559,8 +586,7 @@ PYCODE
 
 Pare qualquer monitor durante esse teste para que nenhum outro evento altere a
 comparação. O evento sintético permanece **no banco de testes** e aparece no
-painel; anote a nova contagem antes do teste da câmera. A suíte descartável da
-etapa 3 valida exclusão/reativação sem modificar essa base interativa.
+painel; anote a nova contagem antes do teste da câmera.
 
 ### 9. Iniciar o monitor — terminal 3
 
@@ -622,11 +648,13 @@ cd C:\caminho\para\aquamonitor
 py -3.12 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements-server.txt -r requirements-cv.txt
-python -m unittest discover -s backend -t . -v
+python -m pip check
 ```
 
-Instale e prepare PostgreSQL separadamente, com o usuário e banco de testes da
-etapa 4. Em cada novo terminal, ative a venv. No terminal da API:
+No Windows, instale o servidor PostgreSQL e suas ferramentas de linha de comando
+(`psql`, `createuser` e `createdb`) pelo instalador do PostgreSQL e adicione a pasta
+`bin` ao `PATH`. Eles não são instalados pelo `pip`. Prepare o usuário e banco de
+testes da etapa 4. Em cada novo terminal, ative a venv. No terminal da API:
 
 ```powershell
 $env:AQUAMONITOR_DATABASE_URL="postgresql://aquamonitor_dev:SENHA@127.0.0.1:5432/aquamonitor_local_test"
@@ -643,9 +671,8 @@ python -m backend.monitoring.monitor_residuos --detector ssd --display
 
 O monitor seleciona DirectShow no Windows e V4L2 no Linux. Os blocos Bash deste
 README não devem ser colados diretamente no PowerShell; para chamadas HTTP, use
-`curl.exe` ou a interface `/docs`. O runner PostgreSQL descartável usa socket Unix:
-execute essa etapa em um ambiente Linux, como WSL, com sua própria venv e
-binários PostgreSQL, sem copiar a venv do Windows.
+`curl.exe` ou a interface `/docs`. Confira a instalação com `psql --version` e valide a API no banco de testes
+conforme as etapas 5 a 10.
 
 ## Setup e testes entre máquinas
 
@@ -696,15 +723,10 @@ hostname -I
 ```
 
 A não precisa instalar os modelos, OpenCV ou Ultralytics para servir apenas a
-API e o painel. Para executar a suíte automatizada também em A, instale
-`requirements-cv.txt` e siga as etapas 2 e 3 do
-[setup local](#setup-e-testes-locais). Isso instala as dependências de visão
-computacional, incluindo Ultralytics/PyTorch; os testes não abrem câmera nem
-executam inferência YOLO real. Para executar somente os testes PostgreSQL da
-etapa 3, `requirements-server.txt` é suficiente e não são necessários modelos.
-Para a suíte completa, mantenha também os três arquivos do modelo SSD em
-`backend/detection/models/`: um dos testes carrega esse modelo real, mesmo que A
-não execute o monitor.
+API e o painel. Para executar também o monitor em A, instale
+`requirements-cv.txt`, as bibliotecas OpenCV do setup local e mantenha os modelos
+em `backend/detection/models/`. A disponibilidade dos testes automatizados está
+descrita na etapa 3 do [setup local](#setup-e-testes-locais).
 
 Prepare o usuário `aquamonitor_dev` e o banco `aquamonitor_local_test` conforme a
 etapa 4 do setup local. No **terminal 1 de A**, inicie a API na rede:
@@ -875,16 +897,53 @@ O repositório fornece unidades systemd em `deploy/systemd/` para iniciar
 PostgreSQL, API e dashboard com um comando. O reconhecimento da câmera continua
 manual. O setup manual das seções anteriores não instala essas unidades.
 
+### Iniciar somente backend e banco juntos
+
+O target `aquamonitor-backend.target` inicia PostgreSQL e API, sem abrir o
+servidor do dashboard. A API aguarda uma conexão válida com o banco por até
+60 segundos e reinicia após falhas. A configuração local `.env.api` desta
+máquina foi preparada com a mesma conexão da API manual (`aquamonitor_local_test`).
+Ela é ignorada pelo Git; em outro clone, prepare-a conforme a seção abaixo.
+
+Encerre a API manual com Ctrl+C no terminal do Uvicorn para liberar a porta 8000.
+Depois execute na raiz do projeto:
+
+```bash
+sudo bash deploy/systemd/install.sh
+sudo systemctl start aquamonitor-backend.target
+systemctl status aquamonitor-backend.target aquamonitor-api.service --no-pager
+curl --fail-with-body http://127.0.0.1:8000/api/stations
+```
+
+Nas próximas execuções:
+
+```bash
+sudo systemctl start aquamonitor-backend.target
+sudo systemctl restart aquamonitor-backend.target
+sudo systemctl stop aquamonitor-backend.target
+sudo journalctl -u aquamonitor-api.service -f
+```
+
+Parar o target encerra a API e mantém PostgreSQL disponível. Para iniciar
+backend e banco automaticamente no boot, habilite explicitamente:
+
+```bash
+sudo systemctl enable --now aquamonitor-backend.target
+```
+
+O target `aquamonitor.target` continua disponível para iniciar também o dashboard.
+Ambos compartilham a mesma API; parar qualquer um deles encerra essa API.
+
 ### Instalar a inicialização conjunta nesta máquina
 
-As unidades fornecidas usam o usuário Linux `vyzxc`, a pasta
-`/home/vyzxc/aquamonitor` e o Python de `.venv/bin/python`. Em outra máquina,
-ajuste `User`, `WorkingDirectory`, `ExecStartPre` e `ExecStart` nos arquivos
-`.service`, além de `project_dir` e do usuário verificado em `install.sh`.
+O instalador detecta a raiz do clone e o usuário que executou `sudo`, e ajusta
+`User`, `WorkingDirectory` e os caminhos Python nas unidades instaladas. Use
+uma `.venv` criada nessa máquina e execute o instalador pelo usuário da aplicação.
 
 Antes de instalar, a `.venv` deve conter `requirements-server.txt`, e o usuário
-PostgreSQL `aquamonitor_dev` deve poder acessar o banco **aquamonitor** e criar
-suas tabelas. Os serviços reutilizam o banco existente; não criam usuário ou
+PostgreSQL configurado deve poder acessar o banco escolhido e criar suas
+tabelas. Pode ser `aquamonitor_local_test`, `aquamonitor_import_test` ou
+`aquamonitor`, conforme a conexão selecionada. Os serviços reutilizam o banco existente; não criam usuário ou
 banco e não executam instalações de dependências.
 
 A conexão fica no arquivo local `deploy/systemd/.env.api`, ignorado pelo Git.
@@ -897,7 +956,7 @@ nano deploy/systemd/.env.api
 ```
 
 Preencha `AQUAMONITOR_DATABASE_URL` com o usuário `aquamonitor_dev`, a senha real
-e o banco `aquamonitor`, conforme o modelo. O instalador copia esse arquivo
+e o banco escolhido, conforme o modelo. O instalador copia esse arquivo
 para `/etc/aquamonitor/api.env`, com permissão `600`, somente na primeira
 instalação. Reinstalações preservam a configuração já existente nesse destino.
 
@@ -915,7 +974,8 @@ máquina, como no setup local. A câmera não é iniciada pelo target.
 
 A API aguarda uma conexão PostgreSQL válida por até 60 segundos antes de abrir
 o Uvicorn. A API e o dashboard reiniciam em caso de falha, com intervalo de cinco
-segundos. Seus processos executam como `vyzxc`, sem precisar ativar a `.venv`
+segundos. Seus processos executam como o usuário que instalou as unidades via `sudo`,
+sem precisar ativar a `.venv`
 no terminal. A senha é carregada pelo systemd a partir de `api.env`.
 
 Nas próximas execuções, basta usar:
@@ -1059,8 +1119,8 @@ python -m backend.monitoring.monitor_ssd_mobilenet --no-display
 # Objetos de teste selecionados no JSON, com contador testes habilitado
 python -m backend.monitoring.monitor_residuos --detector ssd --display --testes
 
-# Testes isolados do monitor, com dependências da estação
-python -m unittest backend.tests.test_monitor backend.tests.test_count_categories backend.tests.test_image_processing -v
+# Conferir consistência das dependências Python instaladas
+python -m pip check
 
 # No terminal com AQUAMONITOR_DATABASE_URL configurada:
 # Verificar conexão e listar as tabelas após o primeiro startup da API
