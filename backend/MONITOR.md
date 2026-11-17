@@ -110,3 +110,12 @@ Use `sudo bash deploy/systemd/install.sh --camera` após configurar
 `deploy/systemd/.env.camera` a partir de `camera.env.example`.
 O serviço executa sem janela e pode iniciar no boot. Veja os comandos e
 pré-requisitos na seção [Câmera automática na Raspberry Pi](../README.md#câmera-automática-na-raspberry-pi).
+
+## Modelo Marcelinho
+
+Use `python -m backend.monitoring.monitor_residuos --detector marcelinho --no-display`
+via SSH, ou `--display` na sessão gráfica. Os pesos ficam em
+`backend/detection/models/marcelinho.pt` e a configuração na seção `marcelinho`
+do `aquamonitor.json`. São reconhecidas as cinco classes de resíduos do projeto,
+com o mesmo rastreamento e envio HTTP dos demais detectores. O service aceita
+`AQUAMONITOR_DETECTOR=marcelinho` em `/etc/aquamonitor/camera.env`.

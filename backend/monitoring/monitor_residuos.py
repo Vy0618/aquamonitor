@@ -92,8 +92,11 @@ def draw_overlay(frame, detections, tracker: LineTracker, counts: dict[str, int]
 
 
 def create_detector(config: dict, name: str):
-    if name == "yolo":
-        settings = config["detection"]
+    if name in ("yolo", "marcelinho"):
+        section = "detection" if name == "yolo" else "marcelinho"
+        if section not in config:
+            raise ValueError(f"Configure a seção {section} no aquamonitor.json para usar {name}.")
+        settings = config[section]
         return YoloDetector(
             model_path=BASE_DIR / settings["model_path"],
             confidence_threshold=settings["confidence_threshold"],
@@ -101,6 +104,8 @@ def create_detector(config: dict, name: str):
             device="cpu",
             allowed_classes=tuple(settings["detection_types"]),
         )
+    if name != "ssd":
+        raise ValueError(f"Detector desconhecido: {name}")
     from backend.detection.ssd_mobilenet_detector import SsdMobileNetDetector
     settings = config["ssd_mobilenet"]
     return SsdMobileNetDetector(
@@ -201,7 +206,7 @@ def run(config: dict, detector_name: str, display: bool | None = None, testes: b
 def main(default_detector: str = "yolo") -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=CONFIG_FILE)
-    parser.add_argument("--detector", choices=("yolo", "ssd"), default=default_detector)
+    parser.add_argument("--detector", choices=("yolo", "ssd", "marcelinho"), default=default_detector)
     parser.add_argument("--testes", action="store_true",
                         help="Habilita o contador testes para classes selecionadas fora dos resíduos.")
     preview = parser.add_mutually_exclusive_group()

@@ -38,4 +38,6 @@ def load_config(path=None):
     for section, fields in (('station_document', ('path',)), ('detection', ('model_path',)), ('ssd_mobilenet', ('model_path','config_path','labels_path'))):
         for field in fields:
             config[section][field] = str((path.parent / config[section][field]).resolve())
+    if 'marcelinho' in config:
+        config['marcelinho']['model_path'] = str((path.parent / config['marcelinho']['model_path']).resolve())
     return config

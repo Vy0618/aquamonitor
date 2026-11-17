@@ -68,5 +68,17 @@
     "enabled": true,
     "max_width": 640,
     "max_height": 480
+  },
+  "marcelinho": {
+    "model_path": "backend/detection/models/marcelinho.pt",
+    "confidence_threshold": 0.45,
+    "image_size": 320,
+    "detection_types": [
+      "bottle",
+      "can",
+      "carton",
+      "paper",
+      "plastic"
+    ]
   }
 }

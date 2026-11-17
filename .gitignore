@@ -32,6 +32,9 @@ junit.xml
 .pytest-tmp/
 
 # Configurações locais e segredos
+.codex/
+.aws/
+.agents/
 .env
 .env.*
 !.env.example

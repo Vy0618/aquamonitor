@@ -131,7 +131,7 @@ e incluí-la em `detection.detection_types`. Alterar a lista não treina o model
 ### Execução do monitor
 
 O comando principal é `python -m backend.monitoring.monitor_residuos`, com
-`--detector ssd` ou `--detector yolo` (padrão). Usa rastreamento por centróides,
+`--detector ssd`, `--detector marcelinho` ou `--detector yolo` (padrão). Usa rastreamento por centróides,
 publicação em thread e aceita `--display` / `--no-display`, além de `--testes`
 para habilitar a contagem de objetos de teste.
 `monitor_ssd_mobilenet` e `monitor_ssd_mobilenet_local` são atalhos para a mesma
@@ -1252,7 +1252,7 @@ sudo journalctl -u aquamonitor-camera.service -f
 ```
 
 Configure o IP real da API em `AQUADETECTOR_API_URL`, o ID previamente cadastrado
-em `BOTTLE_COUNT_STATION_ID` e `AQUAMONITOR_DETECTOR=yolo` ou `ssd`.
+em `BOTTLE_COUNT_STATION_ID` e `AQUAMONITOR_DETECTOR=yolo`, `ssd` ou `marcelinho`.
 A API remota deve escutar na rede e permitir acesso da Pi. Os serviços de servidor
 fornecidos escutam em `127.0.0.1` por padrão; ajuste o bind do Uvicorn no servidor
 para `0.0.0.0` conforme o setup entre máquinas antes de conectar a Pi.
@@ -1284,3 +1284,48 @@ Falhas de câmera, rede ou API provocam nova tentativa após dez segundos.
 O encerramento envia SIGINT para salvar o estado local e aguardar os envios,
 com limite de sessenta segundos. Eventos que falharam não são reenviados
 automaticamente; o reinício do serviço não recupera essas detecções.
+
+
+## Reconhecimento com Marcelinho
+
+O modelo `backend/detection/models/marcelinho.pt` usa o adaptador YOLO em CPU.
+Suas classes são `bottle`, `can`, `carton`, `paper` e `plastic`, compatíveis com
+os contadores, os sentidos de cruzamento, a API e os rótulos do dashboard.
+A seção `marcelinho` do `aquamonitor.json` controla o caminho dos pesos, a
+confiança mínima, o tamanho da inferência e as classes habilitadas.
+
+Com a API acessível e a estação 1 cadastrada, use na Raspberry Pi, no terminal
+em que `AQUADETECTOR_API_URL` já aponta para o computador backend:
+
+```bash
+source .venv/bin/activate
+export BOTTLE_COUNT_STATION_ID=1
+python -m backend.monitoring.monitor_residuos --detector marcelinho --no-display
+```
+
+Para exibir a câmera em uma sessão gráfica, substitua `--no-display` por
+`--display`. Para executar pelo service da Pi, defina
+`AQUAMONITOR_DETECTOR=marcelinho` em `/etc/aquamonitor/camera.env` e execute
+`sudo systemctl restart aquamonitor-camera.service`.
+Na primeira instalação, esse valor pode ser definido em `deploy/systemd/.env.camera`.
+Copie também o novo arquivo de pesos para a Pi. Não execute monitores manuais
+junto com o service, pois ambos tentariam usar a mesma câmera.
+O modelo usa as dependências já declaradas no `requirements.txt`.
+
+
+### Arquivo de configuração do Marcelinho
+
+O arquivo `aquamonitor-marcelinho.json`, na raiz, reúne os parâmetros de câmera,
+rastreamento, backend e modelo para a estação 1. Ajuste os parâmetros do modelo
+na seção `marcelinho`. Para carregar esse arquivo explicitamente:
+
+```bash
+python -m backend.monitoring.monitor_residuos --config aquamonitor-marcelinho.json --detector marcelinho --display
+```
+
+Na Pi via SSH, use `--no-display`. O destino local padrão é
+`http://127.0.0.1:8000`; na Pi, defina `AQUADETECTOR_API_URL` com o endereço real
+do computador backend. Para usar este arquivo pelo service, acrescente
+`AQUAMONITOR_CONFIG=/caminho/absoluto/aquamonitor/aquamonitor-marcelinho.json`
+em `/etc/aquamonitor/camera.env`, mantenha `AQUAMONITOR_DETECTOR=marcelinho`
+e reinicie o serviço.

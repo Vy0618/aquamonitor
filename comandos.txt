@@ -55,4 +55,4 @@ export AQUADETECTOR_API_URL="http://${IP_BACKEND}:8000"
 export BOTTLE_COUNT_STATION_ID=1
 
 curl --fail-with-body --max-time 10 "$AQUADETECTOR_API_URL/api/stations/1/detections" &&
-python -m backend.monitoring.monitor_residuos --detector yolo --no-display
+python -m backend.monitoring.monitor_residuos --detector marcelinho --no-display
